@@ -33,11 +33,36 @@ impl Renderer {
     /// Extract HTML content from RHTML template
     /// This needs to extract ONLY the cmp function content, not slots block
     fn extract_html(&self, content: &str) -> String {
-        // Find "cmp" keyword (either "cmp layout" or "cmp Page")
-        if let Some(cmp_pos) = content.find("cmp ") {
+        // First, skip past any slots block if it exists
+        let search_start = if let Some(slots_pos) = content.find("slots {") {
+            // Find the end of slots block
+            let mut depth = 0;
+            let mut found_opening = false;
+            let mut slots_end = slots_pos;
+
+            for (i, ch) in content[slots_pos..].chars().enumerate() {
+                if ch == '{' {
+                    depth += 1;
+                    found_opening = true;
+                } else if ch == '}' {
+                    depth -= 1;
+                    if found_opening && depth == 0 {
+                        slots_end = slots_pos + i + 1;
+                        break;
+                    }
+                }
+            }
+            slots_end
+        } else {
+            0
+        };
+
+        // Now find "cmp" keyword after the slots block
+        if let Some(cmp_pos) = content[search_start..].find("cmp ") {
+            let abs_cmp_pos = search_start + cmp_pos;
             // Find the opening brace after cmp
-            if let Some(start) = content[cmp_pos..].find('{') {
-                let abs_start = cmp_pos + start;
+            if let Some(start) = content[abs_cmp_pos..].find('{') {
+                let abs_start = abs_cmp_pos + start;
 
                 // Find matching closing brace
                 let mut depth = 0;
@@ -282,14 +307,15 @@ impl Renderer {
         // Extract slots from page (before rendering)
         let slots = self.extract_slots(page_content);
 
-        // Render layout HTML
-        let layout_html = self.render(layout_content)?;
+        // Extract and process layout HTML WITHOUT interpolations yet
+        let layout_html_raw = self.extract_html(layout_content);
+        let layout_processed = self.process_directives(&layout_html_raw);
 
-        // Render page HTML
+        // Render page HTML fully (with interpolations)
         let page_html = self.render(page_content)?;
 
         // Replace {slots.content} with page HTML
-        let mut result = layout_html.replace("{slots.content}", &page_html);
+        let mut result = layout_processed.replace("{slots.content}", &page_html);
 
         // Replace slot placeholders
         // Pattern 1: {slots.get("key").unwrap_or("default")}
@@ -306,6 +332,9 @@ impl Renderer {
                     .to_string()
             })
             .to_string();
+
+        // NOW process interpolations on the final result
+        result = self.process_interpolations(&result);
 
         Ok(result)
     }
