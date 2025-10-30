@@ -11,7 +11,6 @@ use std::sync::Arc;
 #[derive(Clone)]
 struct AppState {
     template_loader: Arc<TemplateLoader>,
-    renderer: Arc<Renderer>,
 }
 
 #[tokio::main]
@@ -37,13 +36,9 @@ async fn main() {
         }
     }
 
-    // Create renderer
-    let renderer = Renderer::new();
-
     // Setup application state
     let state = AppState {
         template_loader: Arc::new(loader),
-        renderer: Arc::new(renderer),
     };
 
     // Build router
@@ -103,13 +98,59 @@ async fn render_route(state: &AppState, route: &str) -> Response {
         }
     };
 
+    // Create a new renderer for this request
+    let mut renderer = Renderer::new();
+
+    // Set up demo data based on route
+    setup_demo_data(&mut renderer, route);
+
     // Render the page with layout
-    match state
-        .renderer
-        .render_with_layout(&layout_template.content, &page_template.content)
-    {
+    match renderer.render_with_layout(&layout_template.content, &page_template.content) {
         Ok(html) => Html(html).into_response(),
         Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+    }
+}
+
+/// Setup demo data for specific routes
+fn setup_demo_data(renderer: &mut Renderer, route: &str) {
+    use rhtml_app::parser::expression::Value;
+
+    if route == "/loops" {
+        // Example 1: Fruits array
+        renderer.set_var("fruits", Value::Array(vec![
+            Value::String("Apple".to_string()),
+            Value::String("Banana".to_string()),
+            Value::String("Cherry".to_string()),
+            Value::String("Dragon Fruit".to_string()),
+        ]));
+
+        // Example 2: Colors array
+        renderer.set_var("colors", Value::Array(vec![
+            Value::String("Red".to_string()),
+            Value::String("Green".to_string()),
+            Value::String("Blue".to_string()),
+            Value::String("Yellow".to_string()),
+        ]));
+
+        // Example 3: Tasks array
+        renderer.set_var("tasks", Value::Array(vec![
+            Value::String("Implement r-for directive".to_string()),
+            Value::String("Create demo page".to_string()),
+            Value::String("Test the feature".to_string()),
+            Value::String("Write documentation".to_string()),
+        ]));
+
+        // Example 4: Numbers array
+        renderer.set_var("numbers", Value::Array(vec![
+            Value::Number(1.0),
+            Value::Number(2.0),
+            Value::Number(3.0),
+            Value::Number(4.0),
+            Value::Number(5.0),
+            Value::Number(6.0),
+            Value::Number(7.0),
+            Value::Number(8.0),
+        ]));
     }
 }
 

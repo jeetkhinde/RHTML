@@ -163,6 +163,22 @@ impl Renderer {
 
                 let tag = &buffer[tag_start..];
 
+                // Check if this tag has loop directive
+                if DirectiveParser::has_for_directive(tag) {
+                    // Extract the element (tag + content + closing tag)
+                    let (element, _consumed) = self.extract_element(tag, &mut chars);
+
+                    // Process the loop
+                    let processed = self.process_loop(&element);
+
+                    // Remove the tag from buffer and add processed result
+                    buffer.truncate(tag_start);
+                    result.push_str(&buffer);
+                    result.push_str(&processed);
+                    buffer.clear();
+                    continue;
+                }
+
                 // Check if this tag has conditional directives
                 if DirectiveParser::has_if_directive(tag)
                     || DirectiveParser::has_else_if_directive(tag)
@@ -254,6 +270,63 @@ impl Renderer {
             .unwrap_or("")
             .trim_end_matches('>')
             .to_string()
+    }
+
+    /// Process a loop element (r-for)
+    fn process_loop(&self, element: &str) -> String {
+        // Extract opening tag
+        let tag_end = element.find('>').unwrap_or(element.len());
+        let opening_tag = &element[..=tag_end];
+
+        // Extract loop information
+        let (item_var, index_var, collection) = match DirectiveParser::extract_for_loop(opening_tag) {
+            Some(info) => info,
+            None => return String::new(),
+        };
+
+        // Get the collection from evaluator
+        let items = match self.evaluator.get_array(&collection) {
+            Some(arr) => arr,
+            None => return String::new(),
+        };
+
+        // Clean the opening tag (remove r-for)
+        let cleaned_tag = DirectiveParser::remove_directives(opening_tag);
+
+        // Get content between opening and closing tags
+        let content_start = tag_end + 1;
+        let content_end = element.rfind(&format!("</{}", self.get_tag_name(opening_tag)))
+            .unwrap_or(element.len());
+        let content = &element[content_start..content_end];
+
+        // Render for each item
+        let mut result = String::new();
+        for (index, item) in items.iter().enumerate() {
+            // Create a new renderer with item variable
+            let mut item_renderer = Renderer::new();
+
+            // Copy all existing variables
+            for (name, value) in &self.evaluator.variables {
+                item_renderer.evaluator.set(name, value.clone());
+            }
+
+            // Set loop variables
+            item_renderer.evaluator.set(&item_var, item.clone());
+            if let Some(idx_var) = &index_var {
+                item_renderer.evaluator.set(idx_var, crate::parser::expression::Value::Number(index as f64));
+            }
+
+            // Process the content
+            let processed_content = item_renderer.process_directives(content);
+            let interpolated = item_renderer.process_interpolations(&processed_content);
+
+            // Add the element with processed content
+            result.push_str(&cleaned_tag);
+            result.push_str(&interpolated);
+            result.push_str(&format!("</{}>", self.get_tag_name(opening_tag)));
+        }
+
+        result
     }
 
     /// Process a conditional element (r-if, r-else-if, r-else)
