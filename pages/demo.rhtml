@@ -1,0 +1,56 @@
+slots {
+title: "Demo - Conditional Rendering",
+footer: "RHTML Feature #2 Demo"
+}
+
+cmp Page(props: &PageProps<()>) {
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold text-gray-800 mb-6">
+      Conditional Rendering Demo 🎨
+    </h1>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Example 1: Simple r-if</h2>
+
+      <div r-if="true" class="bg-green-100 border-l-4 border-green-500 p-4">
+        <p class="text-green-700">✓ This shows because condition is <strong>true</strong></p>
+      </div>
+
+      <div r-if="false" class="bg-red-100 border-l-4 border-red-500 p-4 mt-4">
+        <p class="text-red-700">✗ This is hidden because condition is <strong>false</strong></p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Example 2: r-if with r-else</h2>
+
+      <div r-if="true" class="bg-blue-100 p-4 rounded">
+        <p class="text-blue-800">✓ Condition is TRUE - showing this block</p>
+      </div>
+      <div r-else class="bg-gray-100 p-4 rounded">
+        <p class="text-gray-800">✗ This would show if condition was FALSE</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Example 3: Variables (Next Step)</h2>
+      <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <p class="text-yellow-800">
+          🚧 Variable-based conditions coming in next iteration
+        </p>
+        <code class="text-sm bg-yellow-100 px-2 py-1 rounded mt-2 block">
+                    r-if="user.is_active"
+                </code>
+      </div>
+    </div>
+
+    <div class="mt-8 flex gap-4">
+      <a href="/" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+        ← Home
+      </a>
+      <a href="/about" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+        About →
+      </a>
+    </div>
+  </div>
+  }
