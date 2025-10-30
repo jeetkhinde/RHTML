@@ -1,6 +1,7 @@
 // File: src/template_loader.rs
 // Purpose: Loads RHTML templates from the pages/ directory
 
+use crate::parser::css::{CssParser, ScopedCss};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fs;
@@ -11,6 +12,7 @@ use std::path::{Path, PathBuf};
 pub struct Template {
     pub path: PathBuf,
     pub content: String,
+    pub scoped_css: Option<ScopedCss>,
 }
 
 /// Template loader that reads and caches RHTML files
@@ -71,9 +73,13 @@ impl TemplateLoader {
             .unwrap_or("")
             .to_string();
 
+        // Process CSS
+        let (content_without_css, scoped_css) = CssParser::process_template(&content);
+
         let template = Template {
             path: path.to_path_buf(),
-            content,
+            content: content_without_css,
+            scoped_css,
         };
 
         self.components.insert(name.clone(), template);
@@ -113,9 +119,13 @@ impl TemplateLoader {
         // Generate route key from file path
         let route = self.path_to_route(path);
 
+        // Process CSS
+        let (content_without_css, scoped_css) = CssParser::process_template(&content);
+
         let template = Template {
             path: path.to_path_buf(),
-            content,
+            content: content_without_css,
+            scoped_css,
         };
 
         self.templates.insert(route.clone(), template);
