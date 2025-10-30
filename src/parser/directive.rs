@@ -14,6 +14,9 @@ pub enum Directive {
         index_var: Option<String>,
         collection: String,
     },
+    Match(String),  // r-match="variable"
+    When(String),   // r-when="value"
+    Default,        // r-default
 }
 
 /// Parser for RHTML directives
@@ -38,6 +41,21 @@ impl DirectiveParser {
     /// Check if an HTML tag has an r-for directive
     pub fn has_for_directive(tag: &str) -> bool {
         tag.contains("r-for=")
+    }
+
+    /// Check if an HTML tag has an r-match directive
+    pub fn has_match_directive(tag: &str) -> bool {
+        tag.contains("r-match=")
+    }
+
+    /// Check if an HTML tag has an r-when directive
+    pub fn has_when_directive(tag: &str) -> bool {
+        tag.contains("r-when=")
+    }
+
+    /// Check if an HTML tag has an r-default directive
+    pub fn has_default_directive(tag: &str) -> bool {
+        tag.contains("r-default") && !tag.contains("r-default=")
     }
 
     /// Extract r-if condition from a tag
@@ -83,6 +101,16 @@ impl DirectiveParser {
         Some((left.to_string(), None, collection))
     }
 
+    /// Extract r-match variable from a tag
+    pub fn extract_match_variable(tag: &str) -> Option<String> {
+        Self::extract_directive_value(tag, "r-match")
+    }
+
+    /// Extract r-when pattern from a tag
+    pub fn extract_when_pattern(tag: &str) -> Option<String> {
+        Self::extract_directive_value(tag, "r-when")
+    }
+
     /// Extract directive value using regex
     fn extract_directive_value(tag: &str, directive: &str) -> Option<String> {
         // Match: r-if="condition" or r-if='condition'
@@ -98,13 +126,17 @@ impl DirectiveParser {
     pub fn remove_directives(tag: &str) -> String {
         let mut cleaned = tag.to_string();
 
-        // Remove r-if, r-else-if, r-else, r-for attributes
+        // Remove all directive attributes
         let patterns = [
             r#"r-if=["'][^"']*["']"#,
             r#"r-else-if=["'][^"']*["']"#,
             r#"r-for=["'][^"']*["']"#,
+            r#"r-match=["'][^"']*["']"#,
+            r#"r-when=["'][^"']*["']"#,
             r#"r-else\s*"#,
             r#"r-else="#,
+            r#"r-default\s*"#,
+            r#"r-default="#,
         ];
 
         for pattern in patterns {
@@ -150,6 +182,22 @@ impl DirectiveParser {
             }
         }
 
+        if Self::has_match_directive(tag) {
+            if let Some(variable) = Self::extract_match_variable(tag) {
+                directives.push(Directive::Match(variable));
+            }
+        }
+
+        if Self::has_when_directive(tag) {
+            if let Some(pattern) = Self::extract_when_pattern(tag) {
+                directives.push(Directive::When(pattern));
+            }
+        }
+
+        if Self::has_default_directive(tag) {
+            directives.push(Directive::Default);
+        }
+
         directives
     }
 }
@@ -190,5 +238,23 @@ mod tests {
             result_with_index,
             Some(("item".to_string(), Some("i".to_string()), "items".to_string()))
         );
+    }
+
+    #[test]
+    fn test_extract_match_and_when() {
+        let match_tag = r#"<div r-match="status">"#;
+        assert_eq!(
+            DirectiveParser::extract_match_variable(match_tag),
+            Some("status".to_string())
+        );
+
+        let when_tag = r#"<div r-when="active">"#;
+        assert_eq!(
+            DirectiveParser::extract_when_pattern(when_tag),
+            Some("active".to_string())
+        );
+
+        let default_tag = r#"<div r-default>"#;
+        assert!(DirectiveParser::has_default_directive(default_tag));
     }
 }

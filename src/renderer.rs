@@ -163,6 +163,22 @@ impl Renderer {
 
                 let tag = &buffer[tag_start..];
 
+                // Check if this tag has match directive
+                if DirectiveParser::has_match_directive(tag) {
+                    // Extract the element (tag + content + closing tag)
+                    let (element, _consumed) = self.extract_element(tag, &mut chars);
+
+                    // Process the match block
+                    let processed = self.process_match(&element);
+
+                    // Remove the tag from buffer and add processed result
+                    buffer.truncate(tag_start);
+                    result.push_str(&buffer);
+                    result.push_str(&processed);
+                    buffer.clear();
+                    continue;
+                }
+
                 // Check if this tag has loop directive
                 if DirectiveParser::has_for_directive(tag) {
                     // Extract the element (tag + content + closing tag)
@@ -270,6 +286,150 @@ impl Renderer {
             .unwrap_or("")
             .trim_end_matches('>')
             .to_string()
+    }
+
+    /// Process a match block (r-match, r-when, r-default)
+    fn process_match(&self, element: &str) -> String {
+        // Extract opening tag
+        let tag_end = element.find('>').unwrap_or(element.len());
+        let opening_tag = &element[..=tag_end];
+
+        // Extract match variable
+        let match_var = match DirectiveParser::extract_match_variable(opening_tag) {
+            Some(var) => var,
+            None => return String::new(),
+        };
+
+        // Get the value to match against
+        let match_value = self.evaluator.eval_string(&match_var);
+
+        // Clean the opening tag (remove r-match)
+        let cleaned_tag = DirectiveParser::remove_directives(opening_tag);
+
+        // Get content between opening and closing tags
+        let content_start = tag_end + 1;
+        let content_end = element.rfind(&format!("</{}", self.get_tag_name(opening_tag)))
+            .unwrap_or(element.len());
+        let content = &element[content_start..content_end];
+
+        // Parse child elements looking for r-when and r-default
+        let mut matched_element = None;
+        let mut default_element = None;
+
+        // Parse through content to find when/default elements
+        let mut chars = content.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '<' && chars.peek() != Some(&'/') && chars.peek() != Some(&'!') {
+                // Found an opening tag, collect it
+                let mut tag_buffer = String::from('<');
+                while let Some(&next_ch) = chars.peek() {
+                    tag_buffer.push(chars.next().unwrap());
+                    if next_ch == '>' {
+                        break;
+                    }
+                }
+
+                // Check if this is a when or default directive
+                if DirectiveParser::has_when_directive(&tag_buffer) {
+                    // Extract the full element
+                    let (when_element, _) = self.extract_element_from_tag(&tag_buffer, &mut chars);
+
+                    // Check if this when pattern matches
+                    if let Some(pattern) = DirectiveParser::extract_when_pattern(&tag_buffer) {
+                        if self.evaluator.eval_string(&pattern) == match_value && matched_element.is_none() {
+                            matched_element = Some(when_element);
+                        }
+                    }
+                } else if DirectiveParser::has_default_directive(&tag_buffer) {
+                    // Extract the default element
+                    let (default_elem, _) = self.extract_element_from_tag(&tag_buffer, &mut chars);
+                    default_element = Some(default_elem);
+                }
+            }
+        }
+
+        // Render the matched element or default
+        let selected = matched_element.or(default_element).unwrap_or_default();
+
+        if selected.is_empty() {
+            return String::new();
+        }
+
+        // Remove directives from the selected element and process it
+        let tag_end_pos = selected.find('>').unwrap_or(selected.len());
+        let elem_tag = &selected[..=tag_end_pos];
+        let cleaned_elem_tag = DirectiveParser::remove_directives(elem_tag);
+        let processed_element = selected.replacen(elem_tag, &cleaned_elem_tag, 1);
+
+        // Process the content recursively
+        let processed = self.process_directives(&processed_element);
+        let interpolated = self.process_interpolations(&processed);
+
+        // Wrap in the parent element
+        let mut result = String::new();
+        result.push_str(&cleaned_tag);
+        result.push_str(&interpolated);
+        result.push_str(&format!("</{}>", self.get_tag_name(opening_tag)));
+
+        result
+    }
+
+    /// Helper to extract element when we already have the opening tag
+    fn extract_element_from_tag(
+        &self,
+        opening_tag: &str,
+        chars: &mut std::iter::Peekable<std::str::Chars>,
+    ) -> (String, usize) {
+        let mut element = opening_tag.to_string();
+        let mut consumed = 0;
+
+        // Get tag name
+        let tag_name = self.get_tag_name(opening_tag);
+
+        // If self-closing, return immediately
+        if opening_tag.trim_end().ends_with("/>") {
+            return (element, consumed);
+        }
+
+        // Read content until closing tag
+        let mut depth = 1;
+
+        while let Some(ch) = chars.next() {
+            consumed += 1;
+            element.push(ch);
+
+            // Check for tags
+            if ch == '<' {
+                let mut tag_buffer = String::from('<');
+                while let Some(&next_ch) = chars.peek() {
+                    chars.next();
+                    consumed += 1;
+                    tag_buffer.push(next_ch);
+                    element.push(next_ch);
+                    if next_ch == '>' {
+                        break;
+                    }
+                }
+
+                // Check if opening or closing tag
+                if tag_buffer.starts_with("</") {
+                    let closing_name = self.get_tag_name(&tag_buffer);
+                    if closing_name == tag_name {
+                        depth -= 1;
+                        if depth == 0 {
+                            break;
+                        }
+                    }
+                } else if !tag_buffer.ends_with("/>") && !tag_buffer.starts_with("<!") {
+                    let opening_name = self.get_tag_name(&tag_buffer);
+                    if opening_name == tag_name {
+                        depth += 1;
+                    }
+                }
+            }
+        }
+
+        (element, consumed)
     }
 
     /// Process a loop element (r-for)
