@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 /// Simple expression evaluator for conditions and interpolations
 pub struct ExpressionEvaluator {
-    variables: HashMap<String, Value>,
+    pub(crate) variables: HashMap<String, Value>,
 }
 
 /// Supported value types in templates
@@ -14,6 +14,7 @@ pub enum Value {
     Bool(bool),
     Number(f64),
     String(String),
+    Array(Vec<Value>),
     Null,
 }
 
@@ -142,6 +143,7 @@ impl ExpressionEvaluator {
             Value::Bool(b) => *b,
             Value::Number(n) => *n != 0.0,
             Value::String(s) => !s.is_empty(),
+            Value::Array(arr) => !arr.is_empty(),
             Value::Null => false,
         }
     }
@@ -184,7 +186,20 @@ impl ExpressionEvaluator {
                 }
             }
             Value::String(s) => s.clone(),
+            Value::Array(arr) => {
+                // Format array as [item1, item2, item3]
+                let items: Vec<String> = arr.iter().map(|v| self.value_to_string(v)).collect();
+                format!("[{}]", items.join(", "))
+            }
             Value::Null => String::new(),
+        }
+    }
+
+    /// Get an array value from a variable
+    pub fn get_array(&self, name: &str) -> Option<Vec<Value>> {
+        match self.variables.get(name)? {
+            Value::Array(arr) => Some(arr.clone()),
+            _ => None,
         }
     }
 }
