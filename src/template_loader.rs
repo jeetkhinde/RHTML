@@ -2,6 +2,7 @@
 // Purpose: Loads RHTML templates from the pages/ directory
 
 use crate::parser::css::{CssParser, ScopedCss};
+use crate::router::{Route, Router};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fs;
@@ -21,6 +22,7 @@ pub struct TemplateLoader {
     components_dir: PathBuf,
     templates: HashMap<String, Template>,
     components: HashMap<String, Template>,
+    router: Router,
 }
 
 impl TemplateLoader {
@@ -31,6 +33,7 @@ impl TemplateLoader {
             components_dir: "components".into(),
             templates: HashMap::new(),
             components: HashMap::new(),
+            router: Router::new(),
         }
     }
 
@@ -38,6 +41,10 @@ impl TemplateLoader {
     pub fn load_all(&mut self) -> Result<()> {
         self.load_directory(&self.pages_dir.clone())?;
         self.load_components()?;
+
+        // Sort routes by priority after loading all templates
+        self.router.sort_routes();
+
         Ok(())
     }
 
@@ -116,8 +123,11 @@ impl TemplateLoader {
         let content = fs::read_to_string(path)
             .with_context(|| format!("Failed to read template: {:?}", path))?;
 
-        // Generate route key from file path
-        let route = self.path_to_route(path);
+        // Create a Route for the router
+        let route_obj = Route::from_path(
+            path.to_str().unwrap_or(""),
+            self.pages_dir.to_str().unwrap_or("pages")
+        );
 
         // Process CSS
         let (content_without_css, scoped_css) = CssParser::process_template(&content);
@@ -128,13 +138,24 @@ impl TemplateLoader {
             scoped_css,
         };
 
-        self.templates.insert(route.clone(), template);
+        // Store template using the route pattern as key
+        self.templates.insert(route_obj.pattern.clone(), template.clone());
+
+        // Also store using old key format for backward compatibility
+        let old_route = self.path_to_route(path);
+        if old_route != route_obj.pattern {
+            self.templates.insert(old_route, template);
+        }
 
         println!(
-            "📄 Loaded template: {} -> {:?}",
-            route,
-            path.file_name().unwrap()
+            "📄 Loaded template: {} -> {:?} (priority: {})",
+            route_obj.pattern,
+            path.file_name().unwrap(),
+            route_obj.priority
         );
+
+        // Add to router
+        self.router.add_route(route_obj);
 
         Ok(())
     }
@@ -166,6 +187,27 @@ impl TemplateLoader {
     /// Get the layout template
     pub fn get_layout(&self) -> Option<&Template> {
         self.templates.get("/_layout")
+    }
+
+    /// Get the layout for a specific route pattern
+    pub fn get_layout_for_route(&self, pattern: &str) -> Option<&Template> {
+        if let Some(layout_route) = self.router.get_layout(pattern) {
+            // Convert pattern back to template key
+            let layout_key = if layout_route.pattern == "/" {
+                "/_layout".to_string()
+            } else {
+                format!("{}/_layout", layout_route.pattern)
+            };
+            self.templates.get(&layout_key)
+        } else {
+            // Fall back to root layout
+            self.get_layout()
+        }
+    }
+
+    /// Get the router
+    pub fn router(&self) -> &Router {
+        &self.router
     }
 
     /// Get a component by name

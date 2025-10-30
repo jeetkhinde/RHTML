@@ -74,10 +74,14 @@ async fn template_handler(
 
 /// Render a route with layout
 async fn render_route(state: &AppState, route: &str) -> Response {
-    // Get the page template
-    let page_template = match state.template_loader.get(route) {
-        Some(t) => t,
+    // Use the router to match the route
+    let route_match = match state.template_loader.router().match_route(route) {
+        Some(m) => m,
         None => {
+            // Try direct template lookup as fallback
+            if state.template_loader.get(route).is_some() {
+                return render_route_direct(state, route).await;
+            }
             return error_response(
                 404,
                 "Page Not Found",
@@ -86,8 +90,23 @@ async fn render_route(state: &AppState, route: &str) -> Response {
         }
     };
 
-    // Get the layout template
-    let layout_template = match state.template_loader.get_layout() {
+    // Try to get template by pattern
+    let page_template = state.template_loader.get(&route_match.route.pattern)
+        .or_else(|| state.template_loader.get(route));
+
+    let page_template = match page_template {
+        Some(t) => t,
+        None => {
+            return error_response(
+                404,
+                "Template Not Found",
+                &format!("Template for route '{}' not found", route),
+            );
+        }
+    };
+
+    // Get the appropriate layout (section-specific or root)
+    let layout_template = match state.template_loader.get_layout_for_route(&route_match.route.pattern) {
         Some(t) => t,
         None => {
             return error_response(
@@ -101,8 +120,13 @@ async fn render_route(state: &AppState, route: &str) -> Response {
     // Create a new renderer for this request with component access
     let mut renderer = Renderer::with_loader(state.template_loader.clone());
 
+    // Set route parameters as variables
+    for (param_name, param_value) in &route_match.params {
+        renderer.set_var(param_name, rhtml_app::parser::expression::Value::String(param_value.clone()));
+    }
+
     // Set up demo data based on route
-    setup_demo_data(&mut renderer, route);
+    setup_demo_data(&mut renderer, route, &route_match.params);
 
     // Render the page with layout
     match renderer.render_with_layout(&layout_template.content, &page_template.content) {
@@ -111,8 +135,41 @@ async fn render_route(state: &AppState, route: &str) -> Response {
     }
 }
 
+/// Render a route directly (fallback for old-style routes)
+async fn render_route_direct(state: &AppState, route: &str) -> Response {
+    let page_template = match state.template_loader.get(route) {
+        Some(t) => t,
+        None => {
+            return error_response(
+                404,
+                "Page Not Found",
+                &format!("Route '{}' not found", route),
+            );
+        }
+    };
+
+    let layout_template = match state.template_loader.get_layout() {
+        Some(t) => t,
+        None => {
+            return error_response(
+                500,
+                "Layout Not Found",
+                "Missing _layout.rhtml in pages directory",
+            );
+        }
+    };
+
+    let mut renderer = Renderer::with_loader(state.template_loader.clone());
+    setup_demo_data(&mut renderer, route, &std::collections::HashMap::new());
+
+    match renderer.render_with_layout(&layout_template.content, &page_template.content) {
+        Ok(html) => Html(html).into_response(),
+        Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+    }
+}
+
 /// Setup demo data for specific routes
-fn setup_demo_data(renderer: &mut Renderer, route: &str) {
+fn setup_demo_data(renderer: &mut Renderer, route: &str, _params: &std::collections::HashMap<String, String>) {
     use rhtml_app::parser::expression::Value;
 
     if route == "/loops" {
