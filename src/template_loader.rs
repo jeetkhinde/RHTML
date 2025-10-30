@@ -16,7 +16,9 @@ pub struct Template {
 /// Template loader that reads and caches RHTML files
 pub struct TemplateLoader {
     pages_dir: PathBuf,
+    components_dir: PathBuf,
     templates: HashMap<String, Template>,
+    components: HashMap<String, Template>,
 }
 
 impl TemplateLoader {
@@ -24,13 +26,60 @@ impl TemplateLoader {
     pub fn new(pages_dir: impl Into<PathBuf>) -> Self {
         Self {
             pages_dir: pages_dir.into(),
+            components_dir: "components".into(),
             templates: HashMap::new(),
+            components: HashMap::new(),
         }
     }
 
     /// Load all templates from the pages directory
     pub fn load_all(&mut self) -> Result<()> {
         self.load_directory(&self.pages_dir.clone())?;
+        self.load_components()?;
+        Ok(())
+    }
+
+    /// Load all components from the components directory
+    fn load_components(&mut self) -> Result<()> {
+        let components_dir = self.components_dir.clone();
+        if !components_dir.exists() {
+            return Ok(());
+        }
+
+        for entry in fs::read_dir(&components_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.extension().and_then(|s| s.to_str()) == Some("rhtml") {
+                // Load component file
+                self.load_component(&path)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Load a single component file
+    fn load_component(&mut self, path: &Path) -> Result<()> {
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read component: {:?}", path))?;
+
+        // Component name is the file name without extension
+        let name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        let template = Template {
+            path: path.to_path_buf(),
+            content,
+        };
+
+        self.components.insert(name.clone(), template);
+
+        println!("🧩 Loaded component: {} -> {:?}", name, path.file_name().unwrap());
+
         Ok(())
     }
 
@@ -107,6 +156,11 @@ impl TemplateLoader {
     /// Get the layout template
     pub fn get_layout(&self) -> Option<&Template> {
         self.templates.get("/_layout")
+    }
+
+    /// Get a component by name
+    pub fn get_component(&self, name: &str) -> Option<&Template> {
+        self.components.get(name)
     }
 
     /// List all loaded templates
