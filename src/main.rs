@@ -151,6 +151,18 @@ fn setup_demo_data(renderer: &mut Renderer, route: &str) {
             Value::Number(7.0),
             Value::Number(8.0),
         ]));
+    } else if route == "/match" {
+        // Example 1: User role
+        renderer.set_var("user_role", Value::String("admin".to_string()));
+
+        // Example 2: Order status
+        renderer.set_var("order_status", Value::String("shipped".to_string()));
+
+        // Example 3: Payment method
+        renderer.set_var("payment_method", Value::String("card".to_string()));
+
+        // Example 4: Theme
+        renderer.set_var("theme", Value::String("dark".to_string()));
     }
 }
 
