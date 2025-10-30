@@ -1,0 +1,90 @@
+cmp layout(slots: &Slots) {
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{slots.get("title").unwrap_or("Users - RHTML App")}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="users-section">
+      <nav class="section-nav">
+        <div class="container">
+          <div class="nav-links">
+            <a href="/" class="nav-link">← Home</a>
+            <a href="/users" class="nav-link">Users</a>
+            <a href="/users/new" class="nav-link">+ New User</a>
+          </div>
+        </div>
+      </nav>
+
+      <main class="main-content">
+        {slots.content}
+      </main>
+
+      <footer class="section-footer">
+        <div class="container">
+          <p>{slots.get("footer").unwrap_or("Users Section - RHTML Demo")}</p>
+        </div>
+      </footer>
+    </div>
+  </body>
+  </html>
+}
+
+css layout {
+  .users-section {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .section-nav {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .container {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .nav-link {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+
+  .nav-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .main-content {
+    flex: 1;
+    padding: 2rem 0;
+  }
+
+  .section-footer {
+    background: white;
+    padding: 1.5rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .section-footer p {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.875rem;
+  }
+}
