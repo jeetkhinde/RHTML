@@ -2,18 +2,30 @@
 // Purpose: Render RHTML templates with directive support
 
 use crate::parser::{DirectiveParser, ExpressionEvaluator};
+use crate::template_loader::TemplateLoader;
 use anyhow::Result;
 use regex::Regex;
+use std::sync::Arc;
 
 /// HTML renderer with directive support
 pub struct Renderer {
     evaluator: ExpressionEvaluator,
+    template_loader: Option<Arc<TemplateLoader>>,
 }
 
 impl Renderer {
     pub fn new() -> Self {
         Self {
             evaluator: ExpressionEvaluator::new(),
+            template_loader: None,
+        }
+    }
+
+    /// Create a new renderer with access to components
+    pub fn with_loader(template_loader: Arc<TemplateLoader>) -> Self {
+        Self {
+            evaluator: ExpressionEvaluator::new(),
+            template_loader: Some(template_loader),
         }
     }
 
@@ -163,6 +175,19 @@ impl Renderer {
 
                 let tag = &buffer[tag_start..];
 
+                // Check if this tag has component directive
+                if DirectiveParser::has_component_directive(tag) {
+                    // Process the component inline (self-closing tag)
+                    let processed = self.process_component(tag);
+
+                    // Remove the tag from buffer and add processed result
+                    buffer.truncate(tag_start);
+                    result.push_str(&buffer);
+                    result.push_str(&processed);
+                    buffer.clear();
+                    continue;
+                }
+
                 // Check if this tag has match directive
                 if DirectiveParser::has_match_directive(tag) {
                     // Extract the element (tag + content + closing tag)
@@ -286,6 +311,53 @@ impl Renderer {
             .unwrap_or("")
             .trim_end_matches('>')
             .to_string()
+    }
+
+    /// Process a component (r-component)
+    fn process_component(&self, tag: &str) -> String {
+        // Extract component name and props
+        let (name, props) = match DirectiveParser::extract_component(tag) {
+            Some(info) => info,
+            None => return String::new(),
+        };
+
+        // Get template loader
+        let loader = match &self.template_loader {
+            Some(loader) => loader,
+            None => return String::new(), // No loader available
+        };
+
+        // Load component template
+        let component = match loader.get_component(&name) {
+            Some(comp) => comp,
+            None => return format!("<!-- Component '{}' not found -->", name),
+        };
+
+        // Extract HTML from component
+        let component_html = self.extract_html(&component.content);
+
+        // Create a new renderer for the component with props as variables
+        let mut component_renderer = if let Some(loader) = &self.template_loader {
+            Renderer::with_loader(Arc::clone(loader))
+        } else {
+            Renderer::new()
+        };
+
+        // Copy all existing variables to component renderer
+        for (var_name, value) in &self.evaluator.variables {
+            component_renderer.evaluator.set(var_name, value.clone());
+        }
+
+        // Set props as variables in component renderer
+        for (key, value) in props {
+            component_renderer.evaluator.set(&key, crate::parser::expression::Value::String(value));
+        }
+
+        // Render the component
+        let processed = component_renderer.process_directives(&component_html);
+        let interpolated = component_renderer.process_interpolations(&processed);
+
+        interpolated
     }
 
     /// Process a match block (r-match, r-when, r-default)

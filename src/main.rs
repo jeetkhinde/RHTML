@@ -98,8 +98,8 @@ async fn render_route(state: &AppState, route: &str) -> Response {
         }
     };
 
-    // Create a new renderer for this request
-    let mut renderer = Renderer::new();
+    // Create a new renderer for this request with component access
+    let mut renderer = Renderer::with_loader(state.template_loader.clone());
 
     // Set up demo data based on route
     setup_demo_data(&mut renderer, route);
