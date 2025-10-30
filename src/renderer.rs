@@ -5,12 +5,14 @@ use crate::parser::{DirectiveParser, ExpressionEvaluator};
 use crate::template_loader::TemplateLoader;
 use anyhow::Result;
 use regex::Regex;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// HTML renderer with directive support
 pub struct Renderer {
     evaluator: ExpressionEvaluator,
     template_loader: Option<Arc<TemplateLoader>>,
+    collected_css: HashSet<String>, // Track which component CSS has been collected
 }
 
 impl Renderer {
@@ -18,6 +20,7 @@ impl Renderer {
         Self {
             evaluator: ExpressionEvaluator::new(),
             template_loader: None,
+            collected_css: HashSet::new(),
         }
     }
 
@@ -26,6 +29,7 @@ impl Renderer {
         Self {
             evaluator: ExpressionEvaluator::new(),
             template_loader: Some(template_loader),
+            collected_css: HashSet::new(),
         }
     }
 
@@ -35,7 +39,7 @@ impl Renderer {
     }
 
     /// Render a template to HTML
-    pub fn render(&self, template_content: &str) -> Result<String> {
+    pub fn render(&mut self, template_content: &str) -> Result<String> {
         let html = self.extract_html(template_content);
         let processed = self.process_directives(&html);
         let interpolated = self.process_interpolations(&processed);
@@ -154,7 +158,7 @@ impl Renderer {
     }
 
     /// Process r-if, r-else-if, r-else directives
-    fn process_directives(&self, html: &str) -> String {
+    fn process_directives(&mut self, html: &str) -> String {
         let mut result = String::new();
         let mut chars = html.chars().peekable();
         let mut buffer = String::new();
@@ -314,7 +318,7 @@ impl Renderer {
     }
 
     /// Process a component (r-component)
-    fn process_component(&self, tag: &str) -> String {
+    fn process_component(&mut self, tag: &str) -> String {
         // Extract component name and props
         let (name, props) = match DirectiveParser::extract_component(tag) {
             Some(info) => info,
@@ -332,6 +336,11 @@ impl Renderer {
             Some(comp) => comp,
             None => return format!("<!-- Component '{}' not found -->", name),
         };
+
+        // Collect CSS from this component
+        if let Some(ref scoped_css) = component.scoped_css {
+            self.collected_css.insert(scoped_css.scoped_css.clone());
+        }
 
         // Extract HTML from component
         let component_html = self.extract_html(&component.content);
@@ -357,11 +366,55 @@ impl Renderer {
         let processed = component_renderer.process_directives(&component_html);
         let interpolated = component_renderer.process_interpolations(&processed);
 
-        interpolated
+        // Add scope attribute to the component HTML
+        let scope_name = component.scoped_css.as_ref()
+            .map(|css| css.scope_name.clone())
+            .unwrap_or(name.clone());
+
+        self.add_scope_attribute(&interpolated, &scope_name)
+    }
+
+    /// Add data-rhtml scope attribute to the root element
+    fn add_scope_attribute(&self, html: &str, scope_name: &str) -> String {
+        let html = html.trim();
+
+        // Find the first opening tag
+        if let Some(first_gt) = html.find('>') {
+            if let Some(first_lt) = html.find('<') {
+                if first_lt == 0 {
+                    // It's an opening tag
+                    let tag = &html[..=first_gt];
+
+                    // Check if it's a self-closing tag or already has the attribute
+                    if tag.contains("data-rhtml=") {
+                        return html.to_string();
+                    }
+
+                    // Insert the data-rhtml attribute before the closing >
+                    let insert_pos = if tag.ends_with("/>") {
+                        first_gt - 1
+                    } else {
+                        first_gt
+                    };
+
+                    let new_tag = format!(
+                        "{} data-rhtml=\"{}\"{}",
+                        &html[..insert_pos],
+                        scope_name,
+                        &html[insert_pos..]
+                    );
+
+                    return new_tag;
+                }
+            }
+        }
+
+        // If we can't find a tag, wrap it in a div with the scope attribute
+        format!("<div data-rhtml=\"{}\">{}</div>", scope_name, html)
     }
 
     /// Process a match block (r-match, r-when, r-default)
-    fn process_match(&self, element: &str) -> String {
+    fn process_match(&mut self, element: &str) -> String {
         // Extract opening tag
         let tag_end = element.find('>').unwrap_or(element.len());
         let opening_tag = &element[..=tag_end];
@@ -505,7 +558,7 @@ impl Renderer {
     }
 
     /// Process a loop element (r-for)
-    fn process_loop(&self, element: &str) -> String {
+    fn process_loop(&mut self, element: &str) -> String {
         // Extract opening tag
         let tag_end = element.find('>').unwrap_or(element.len());
         let opening_tag = &element[..=tag_end];
@@ -562,7 +615,7 @@ impl Renderer {
     }
 
     /// Process a conditional element (r-if, r-else-if, r-else)
-    fn process_conditional(&self, element: &str) -> String {
+    fn process_conditional(&mut self, element: &str) -> String {
         // Extract opening tag
         let tag_end = element.find('>').unwrap_or(element.len());
         let opening_tag = &element[..=tag_end];
@@ -608,7 +661,7 @@ impl Renderer {
     }
 
     /// Render page with layout
-    pub fn render_with_layout(&self, layout_content: &str, page_content: &str) -> Result<String> {
+    pub fn render_with_layout(&mut self, layout_content: &str, page_content: &str) -> Result<String> {
         // Extract slots from page (before rendering)
         let slots = self.extract_slots(page_content);
 
@@ -641,7 +694,46 @@ impl Renderer {
         // NOW process interpolations on the final result
         result = self.process_interpolations(&result);
 
+        // Inject collected CSS into the <head>
+        result = self.inject_css(&result);
+
         Ok(result)
+    }
+
+    /// Inject collected CSS into the HTML <head>
+    fn inject_css(&self, html: &str) -> String {
+        if self.collected_css.is_empty() {
+            return html.to_string();
+        }
+
+        // Combine all collected CSS
+        let combined_css = self.collected_css.iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join("\n\n");
+
+        // Create a <style> tag with the scoped CSS
+        let style_tag = format!("<style data-rhtml-scoped>\n{}\n</style>", combined_css);
+
+        // Try to inject into <head> before </head> tag
+        if let Some(head_close) = html.find("</head>") {
+            let mut result = html.to_string();
+            result.insert_str(head_close, &style_tag);
+            result.insert_str(head_close, "\n");
+            return result;
+        }
+
+        // If no </head> found, try to inject after <head>
+        if let Some(head_open) = html.find("<head>") {
+            let insert_pos = head_open + 6; // Length of "<head>"
+            let mut result = html.to_string();
+            result.insert_str(insert_pos, "\n");
+            result.insert_str(insert_pos + 1, &style_tag);
+            return result;
+        }
+
+        // If no <head> found, return as-is
+        html.to_string()
     }
 }
 
