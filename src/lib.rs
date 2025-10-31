@@ -2,6 +2,8 @@ pub mod parser;
 pub mod renderer;
 pub mod router;
 pub mod template_loader;
+pub mod hot_reload;
+pub mod websocket;
 
 pub use parser::{DirectiveParser, ExpressionEvaluator};
 pub use renderer::Renderer;
