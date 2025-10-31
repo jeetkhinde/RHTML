@@ -191,7 +191,14 @@ impl Router {
 
     /// Get the layout for a given route pattern
     pub fn get_layout(&self, pattern: &str) -> Option<&Route> {
-        // Try to find a section layout first
+        // First, try to find a layout for this exact pattern (for /users -> /users layout)
+        if pattern != "/" {
+            if let Some(layout) = self.layouts.get(pattern) {
+                return Some(layout);
+            }
+        }
+
+        // Then try to find a section layout by looking at parent path
         if let Some(last_slash) = pattern.rfind('/') {
             if last_slash > 0 {
                 let section = &pattern[..last_slash];
