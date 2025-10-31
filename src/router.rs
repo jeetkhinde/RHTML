@@ -2,7 +2,6 @@
 // Purpose: File-based routing with dynamic parameters and nested layouts
 
 use std::collections::HashMap;
-use std::path::Path;
 
 /// Represents a route with pattern and parameters
 #[derive(Debug, Clone)]
@@ -148,6 +147,7 @@ impl Route {
 }
 
 /// Router that manages all routes
+#[derive(Clone)]
 pub struct Router {
     routes: Vec<Route>,
     layouts: HashMap<String, Route>,
@@ -169,6 +169,15 @@ impl Router {
         } else {
             self.routes.push(route);
         }
+    }
+
+    /// Remove a route by pattern
+    pub fn remove_route(&mut self, pattern: &str) {
+        // Remove from routes
+        self.routes.retain(|r| r.pattern != pattern);
+
+        // Remove from layouts
+        self.layouts.remove(pattern);
     }
 
     /// Sort routes by priority (lower priority number = higher priority)

@@ -5,12 +5,19 @@ use axum::{
     Router,
 };
 use rhtml_app::{Renderer, TemplateLoader};
+use rhtml_app::hot_reload::{create_watcher, ChangeType, FileChange};
+use rhtml_app::websocket::{websocket_handler, WsState};
 use std::sync::Arc;
+use tokio::sync::RwLock;
+use tokio::sync::broadcast;
+use tracing::{info, error};
 
 /// Application state shared across handlers
 #[derive(Clone)]
 struct AppState {
-    template_loader: Arc<TemplateLoader>,
+    template_loader: Arc<RwLock<TemplateLoader>>,
+    hot_reload_enabled: bool,
+    reload_tx: broadcast::Sender<FileChange>,
 }
 
 #[tokio::main]
@@ -19,6 +26,12 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     println!("🚀 RHTML App Starting...");
+
+    // Check if hot reload is enabled (default: true for development)
+    let hot_reload_enabled = std::env::var("HOT_RELOAD")
+        .unwrap_or_else(|_| "true".to_string())
+        .parse::<bool>()
+        .unwrap_or(true);
 
     // Load all templates
     let mut loader = TemplateLoader::new("pages");
@@ -36,16 +49,74 @@ async fn main() {
         }
     }
 
-    // Setup application state
-    let state = AppState {
-        template_loader: Arc::new(loader),
+    // Wrap loader in Arc<RwLock> for thread-safe updates
+    let template_loader = Arc::new(RwLock::new(loader));
+
+    // Setup hot reload if enabled
+    let reload_tx = if hot_reload_enabled {
+        println!("🔄 Hot Reload: ENABLED");
+
+        // Create file watcher
+        match create_watcher() {
+            Ok(watcher) => {
+                let reload_tx = watcher.sender();
+
+                // Spawn task to handle file changes
+                let loader_clone = template_loader.clone();
+                let mut reload_rx = watcher.subscribe();
+                tokio::spawn(async move {
+                    while let Ok(file_change) = reload_rx.recv().await {
+                        match file_change.change_type {
+                            ChangeType::Template | ChangeType::Component => {
+                                info!("🔄 Reloading template: {:?}", file_change.path);
+
+                                let mut loader = loader_clone.write().await;
+                                if let Err(e) = loader.reload_template(&file_change.path) {
+                                    error!("❌ Failed to reload template: {}", e);
+                                } else {
+                                    info!("✅ Template reloaded successfully");
+                                }
+                            }
+                            ChangeType::SourceCode => {
+                                info!("⚠️  Source code changed - restart server for changes to take effect");
+                            }
+                        }
+                    }
+                });
+
+                reload_tx
+            }
+            Err(e) => {
+                eprintln!("⚠️  Failed to create file watcher: {}", e);
+                eprintln!("   Continuing without hot reload...");
+                broadcast::channel::<FileChange>(1).0
+            }
+        }
+    } else {
+        println!("🔄 Hot Reload: DISABLED");
+        broadcast::channel::<FileChange>(1).0
     };
 
-    // Build router
-    let app = Router::new()
-        .route("/", get(index_handler))
-        .route("/*path", get(template_handler))
-        .with_state(state);
+    // Setup application state
+    let state = AppState {
+        template_loader: template_loader.clone(),
+        hot_reload_enabled,
+        reload_tx: reload_tx.clone(),
+    };
+
+    // Build router with unified state
+    let app = if hot_reload_enabled {
+        Router::new()
+            .route("/", get(index_handler))
+            .route("/*path", get(template_handler))
+            .route("/__hot_reload", get(ws_handler))
+            .with_state(state)
+    } else {
+        Router::new()
+            .route("/", get(index_handler))
+            .route("/*path", get(template_handler))
+            .with_state(state)
+    };
 
     // Start server
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
@@ -53,6 +124,9 @@ async fn main() {
         .unwrap();
 
     println!("✅ Server running at http://localhost:3000");
+    if hot_reload_enabled {
+        println!("🔌 WebSocket endpoint: ws://localhost:3000/__hot_reload");
+    }
     println!("🎯 Try visiting: http://localhost:3000/\n");
 
     axum::serve(listener, app).await.unwrap();
@@ -74,12 +148,15 @@ async fn template_handler(
 
 /// Render a route with layout
 async fn render_route(state: &AppState, route: &str) -> Response {
+    let loader = state.template_loader.read().await;
+
     // Use the router to match the route
-    let route_match = match state.template_loader.router().match_route(route) {
+    let route_match = match loader.router().match_route(route) {
         Some(m) => m,
         None => {
             // Try direct template lookup as fallback
-            if state.template_loader.get(route).is_some() {
+            if loader.get(route).is_some() {
+                drop(loader);
                 return render_route_direct(state, route).await;
             }
             return error_response(
@@ -91,11 +168,11 @@ async fn render_route(state: &AppState, route: &str) -> Response {
     };
 
     // Try to get template by pattern
-    let page_template = state.template_loader.get(&route_match.route.pattern)
-        .or_else(|| state.template_loader.get(route));
+    let page_template = loader.get(&route_match.route.pattern)
+        .or_else(|| loader.get(route));
 
     let page_template = match page_template {
-        Some(t) => t,
+        Some(t) => t.clone(),
         None => {
             return error_response(
                 404,
@@ -106,8 +183,8 @@ async fn render_route(state: &AppState, route: &str) -> Response {
     };
 
     // Get the appropriate layout (section-specific or root)
-    let layout_template = match state.template_loader.get_layout_for_route(&route_match.route.pattern) {
-        Some(t) => t,
+    let layout_template = match loader.get_layout_for_route(&route_match.route.pattern) {
+        Some(t) => t.clone(),
         None => {
             return error_response(
                 500,
@@ -117,8 +194,17 @@ async fn render_route(state: &AppState, route: &str) -> Response {
         }
     };
 
+    // Create Arc wrapper for the locked loader to pass to renderer
+    let loader_arc = Arc::new((*loader).clone());
+    drop(loader);
+
     // Create a new renderer for this request with component access
-    let mut renderer = Renderer::with_loader(state.template_loader.clone());
+    let mut renderer = Renderer::with_loader(loader_arc);
+
+    // Enable hot reload if configured
+    if state.hot_reload_enabled {
+        renderer.enable_hot_reload();
+    }
 
     // Set route parameters as variables
     for (param_name, param_value) in &route_match.params {
@@ -137,8 +223,10 @@ async fn render_route(state: &AppState, route: &str) -> Response {
 
 /// Render a route directly (fallback for old-style routes)
 async fn render_route_direct(state: &AppState, route: &str) -> Response {
-    let page_template = match state.template_loader.get(route) {
-        Some(t) => t,
+    let loader = state.template_loader.read().await;
+
+    let page_template = match loader.get(route) {
+        Some(t) => t.clone(),
         None => {
             return error_response(
                 404,
@@ -148,8 +236,8 @@ async fn render_route_direct(state: &AppState, route: &str) -> Response {
         }
     };
 
-    let layout_template = match state.template_loader.get_layout() {
-        Some(t) => t,
+    let layout_template = match loader.get_layout() {
+        Some(t) => t.clone(),
         None => {
             return error_response(
                 500,
@@ -159,7 +247,16 @@ async fn render_route_direct(state: &AppState, route: &str) -> Response {
         }
     };
 
-    let mut renderer = Renderer::with_loader(state.template_loader.clone());
+    let loader_arc = Arc::new((*loader).clone());
+    drop(loader);
+
+    let mut renderer = Renderer::with_loader(loader_arc);
+
+    // Enable hot reload if configured
+    if state.hot_reload_enabled {
+        renderer.enable_hot_reload();
+    }
+
     setup_demo_data(&mut renderer, route, &std::collections::HashMap::new());
 
     match renderer.render_with_layout(&layout_template.content, &page_template.content) {
@@ -221,6 +318,19 @@ fn setup_demo_data(renderer: &mut Renderer, route: &str, _params: &std::collecti
         // Example 4: Theme
         renderer.set_var("theme", Value::String("dark".to_string()));
     }
+}
+
+/// WebSocket handler for hot reload
+async fn ws_handler(
+    ws: axum::extract::ws::WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> Response {
+    // Convert AppState to WsState for the websocket handler
+    let ws_state = Arc::new(WsState {
+        reload_tx: state.reload_tx.clone(),
+    });
+
+    websocket_handler(ws, axum::extract::State(ws_state)).await
 }
 
 /// Create an error response

@@ -17,6 +17,7 @@ pub struct Template {
 }
 
 /// Template loader that reads and caches RHTML files
+#[derive(Clone)]
 pub struct TemplateLoader {
     pages_dir: PathBuf,
     components_dir: PathBuf,
@@ -225,6 +226,60 @@ impl TemplateLoader {
     /// Get total number of loaded templates
     pub fn count(&self) -> usize {
         self.templates.len()
+    }
+
+    /// Reload a specific template file
+    pub fn reload_template(&mut self, path: &Path) -> Result<()> {
+        if path.to_str().unwrap_or("").contains("/components/") {
+            self.reload_component(path)?;
+        } else {
+            // Remove old template
+            let route_obj = Route::from_path(
+                path.to_str().unwrap_or(""),
+                self.pages_dir.to_str().unwrap_or("pages")
+            );
+            self.templates.remove(&route_obj.pattern);
+
+            // Remove from router
+            self.router.remove_route(&route_obj.pattern);
+
+            // Reload template
+            self.load_template(path)?;
+
+            // Re-sort routes
+            self.router.sort_routes();
+        }
+        Ok(())
+    }
+
+    /// Reload a specific component file
+    pub fn reload_component(&mut self, path: &Path) -> Result<()> {
+        let name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        // Remove old component
+        self.components.remove(&name);
+
+        // Reload component
+        self.load_component(path)?;
+
+        Ok(())
+    }
+
+    /// Reload all templates and components
+    pub fn reload_all(&mut self) -> Result<()> {
+        // Clear all templates and components
+        self.templates.clear();
+        self.components.clear();
+        self.router = Router::new();
+
+        // Reload everything
+        self.load_all()?;
+
+        Ok(())
     }
 }
 
