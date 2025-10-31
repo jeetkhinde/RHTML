@@ -64,14 +64,14 @@ impl Renderer {
             let mut found_opening = false;
             let mut slots_end = slots_pos;
 
-            for (i, ch) in content[slots_pos..].chars().enumerate() {
+            for (byte_idx, ch) in content[slots_pos..].char_indices() {
                 if ch == '{' {
                     depth += 1;
                     found_opening = true;
                 } else if ch == '}' {
                     depth -= 1;
                     if found_opening && depth == 0 {
-                        slots_end = slots_pos + i + 1;
+                        slots_end = slots_pos + byte_idx + ch.len_utf8();
                         break;
                     }
                 }
@@ -92,13 +92,13 @@ impl Renderer {
                 let mut depth = 0;
                 let mut end_pos = None;
 
-                for (i, ch) in content[abs_start..].chars().enumerate() {
+                for (byte_idx, ch) in content[abs_start..].char_indices() {
                     if ch == '{' {
                         depth += 1;
                     } else if ch == '}' {
                         depth -= 1;
                         if depth == 0 {
-                            end_pos = Some(abs_start + i);
+                            end_pos = Some(abs_start + byte_idx);
                             break;
                         }
                     }
@@ -125,14 +125,14 @@ impl Renderer {
             let mut found_opening = false;
             let mut end_pos = None;
 
-            for (i, ch) in page_content[slots_start..].chars().enumerate() {
+            for (byte_idx, ch) in page_content[slots_start..].char_indices() {
                 if ch == '{' {
                     depth += 1;
                     found_opening = true;
                 } else if ch == '}' {
                     depth -= 1;
                     if found_opening && depth == 0 {
-                        end_pos = Some(slots_start + i);
+                        end_pos = Some(slots_start + byte_idx);
                         break;
                     }
                 }
