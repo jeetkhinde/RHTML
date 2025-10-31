@@ -102,6 +102,7 @@ async fn main() {
         .with_state(state);
 
     // Add LiveReloadLayer if hot reload is enabled
+    // tower-livereload has built-in file watching and will trigger browser reloads automatically
     if hot_reload_enabled {
         app = app.layer(LiveReloadLayer::new());
     }
