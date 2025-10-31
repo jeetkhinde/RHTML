@@ -42,9 +42,11 @@ impl HotReloadWatcher {
                     ) {
                         for path in event.paths {
                             // Determine change type based on file path
-                            let change_type = if path.to_str().unwrap_or("").contains("/pages/") {
+                            let path_str = path.to_str().unwrap_or("");
+
+                            let change_type = if path_str.contains("pages/") || path_str.contains("pages\\") {
                                 ChangeType::Template
-                            } else if path.to_str().unwrap_or("").contains("/components/") {
+                            } else if path_str.contains("components/") || path_str.contains("components\\") {
                                 ChangeType::Component
                             } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
                                 ChangeType::SourceCode

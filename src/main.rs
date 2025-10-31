@@ -62,9 +62,11 @@ async fn main() {
                 let reload_tx = watcher.sender();
 
                 // Spawn task to handle file changes
+                // IMPORTANT: Keep watcher alive by moving it into the task
                 let loader_clone = template_loader.clone();
                 let mut reload_rx = watcher.subscribe();
                 tokio::spawn(async move {
+                    let _watcher = watcher; // Keep watcher alive for the entire task
                     while let Ok(file_change) = reload_rx.recv().await {
                         match file_change.change_type {
                             ChangeType::Template | ChangeType::Component => {
