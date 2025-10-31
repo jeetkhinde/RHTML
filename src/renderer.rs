@@ -13,7 +13,6 @@ pub struct Renderer {
     evaluator: ExpressionEvaluator,
     template_loader: Option<Arc<TemplateLoader>>,
     collected_css: HashSet<String>, // Track which component CSS has been collected
-    hot_reload_enabled: bool,
 }
 
 impl Renderer {
@@ -22,7 +21,6 @@ impl Renderer {
             evaluator: ExpressionEvaluator::new(),
             template_loader: None,
             collected_css: HashSet::new(),
-            hot_reload_enabled: false,
         }
     }
 
@@ -32,13 +30,7 @@ impl Renderer {
             evaluator: ExpressionEvaluator::new(),
             template_loader: Some(template_loader),
             collected_css: HashSet::new(),
-            hot_reload_enabled: false,
         }
-    }
-
-    /// Enable hot reload script injection
-    pub fn enable_hot_reload(&mut self) {
-        self.hot_reload_enabled = true;
     }
 
     /// Set a variable for expression evaluation
@@ -705,11 +697,6 @@ impl Renderer {
         // Inject collected CSS into the <head>
         result = self.inject_css(&result);
 
-        // Inject hot reload script if enabled
-        if self.hot_reload_enabled {
-            result = self.inject_hot_reload(&result);
-        }
-
         Ok(result)
     }
 
@@ -747,69 +734,6 @@ impl Renderer {
 
         // If no <head> found, return as-is
         html.to_string()
-    }
-
-    /// Inject hot reload script into HTML
-    fn inject_hot_reload(&self, html: &str) -> String {
-        let script = r#"
-<script>
-(function() {
-    console.log('🔄 RHTML Hot Reload enabled');
-
-    function connect() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(protocol + '//' + window.location.host + '/__hot_reload');
-
-        ws.onopen = function() {
-            console.log('✅ Connected to hot reload server');
-        };
-
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            console.log('🔄 Received reload signal:', data);
-
-            if (data.type === 'reload') {
-                console.log('🔄 Reloading page...');
-                window.location.reload();
-            } else if (data.type === 'css_update') {
-                console.log('🎨 Updating CSS...');
-                window.location.reload();
-            }
-        };
-
-        ws.onerror = function(error) {
-            console.error('❌ WebSocket error:', error);
-        };
-
-        ws.onclose = function() {
-            console.log('🔌 Hot reload disconnected, attempting to reconnect...');
-            setTimeout(connect, 1000);
-        };
-    }
-
-    connect();
-})();
-</script>
-"#;
-
-        // Try to inject before </body>
-        if let Some(body_close) = html.find("</body>") {
-            let mut result = html.to_string();
-            result.insert_str(body_close, script);
-            return result;
-        }
-
-        // If no </body>, try to inject after <body>
-        if let Some(body_open) = html.find("<body>") {
-            let insert_pos = body_open + 6;
-            let mut result = html.to_string();
-            result.insert_str(insert_pos, "\n");
-            result.insert_str(insert_pos + 1, script);
-            return result;
-        }
-
-        // If no body tags, append at end
-        format!("{}\n{}", html, script)
     }
 }
 
