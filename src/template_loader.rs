@@ -238,12 +238,21 @@ impl TemplateLoader {
 
     /// Reload a specific template file
     pub fn reload_template(&mut self, path: &Path) -> Result<()> {
-        if path.to_str().unwrap_or("").contains("/components/") {
+        if path.to_str().unwrap_or("").contains("/components/") || path.to_str().unwrap_or("").contains("\\components\\") {
             self.reload_component(path)?;
         } else {
+            // Convert absolute path to relative if needed
+            let relative_path = if path.is_absolute() {
+                // Try to strip current directory
+                let current_dir = std::env::current_dir().unwrap_or_default();
+                path.strip_prefix(&current_dir).unwrap_or(path)
+            } else {
+                path
+            };
+
             // Remove old template
             let route_obj = Route::from_path(
-                path.to_str().unwrap_or(""),
+                relative_path.to_str().unwrap_or(""),
                 self.pages_dir.to_str().unwrap_or("pages")
             );
             self.templates.remove(&route_obj.pattern);
@@ -251,8 +260,8 @@ impl TemplateLoader {
             // Remove from router
             self.router.remove_route(&route_obj.pattern);
 
-            // Reload template
-            self.load_template(path)?;
+            // Reload template using relative path
+            self.load_template(relative_path)?;
 
             // Re-sort routes
             self.router.sort_routes();
@@ -262,7 +271,15 @@ impl TemplateLoader {
 
     /// Reload a specific component file
     pub fn reload_component(&mut self, path: &Path) -> Result<()> {
-        let name = path
+        // Convert absolute path to relative if needed
+        let relative_path = if path.is_absolute() {
+            let current_dir = std::env::current_dir().unwrap_or_default();
+            path.strip_prefix(&current_dir).unwrap_or(path)
+        } else {
+            path
+        };
+
+        let name = relative_path
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("")
@@ -271,8 +288,8 @@ impl TemplateLoader {
         // Remove old component
         self.components.remove(&name);
 
-        // Reload component
-        self.load_component(path)?;
+        // Reload component using relative path
+        self.load_component(relative_path)?;
 
         Ok(())
     }
