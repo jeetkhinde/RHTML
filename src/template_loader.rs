@@ -138,13 +138,21 @@ impl TemplateLoader {
             scoped_css,
         };
 
-        // Store template using the route pattern as key
-        self.templates.insert(route_obj.pattern.clone(), template.clone());
-
-        // Also store using old key format for backward compatibility
-        let old_route = self.path_to_route(path);
-        if old_route != route_obj.pattern {
+        // For layouts, only store with the old-style key (e.g., "/_layout", "/users/_layout")
+        // For pages, store with both pattern key and old-style key
+        if route_obj.is_layout {
+            // Layouts: only use old-style key to avoid collision with pages
+            let old_route = self.path_to_route(path);
             self.templates.insert(old_route, template);
+        } else {
+            // Pages: store with pattern key
+            self.templates.insert(route_obj.pattern.clone(), template.clone());
+
+            // Also store using old key format for backward compatibility
+            let old_route = self.path_to_route(path);
+            if old_route != route_obj.pattern {
+                self.templates.insert(old_route, template);
+            }
         }
 
         println!(
