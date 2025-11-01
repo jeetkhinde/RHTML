@@ -15,6 +15,7 @@ pub enum Value {
     Number(f64),
     String(String),
     Array(Vec<Value>),
+    Object(HashMap<String, Value>),
     Null,
 }
 
@@ -144,6 +145,7 @@ impl ExpressionEvaluator {
             Value::Number(n) => *n != 0.0,
             Value::String(s) => !s.is_empty(),
             Value::Array(arr) => !arr.is_empty(),
+            Value::Object(obj) => !obj.is_empty(),
             Value::Null => false,
         }
     }
@@ -190,6 +192,13 @@ impl ExpressionEvaluator {
                 // Format array as [item1, item2, item3]
                 let items: Vec<String> = arr.iter().map(|v| self.value_to_string(v)).collect();
                 format!("[{}]", items.join(", "))
+            }
+            Value::Object(obj) => {
+                // Format object as {key1: value1, key2: value2}
+                let pairs: Vec<String> = obj.iter()
+                    .map(|(k, v)| format!("{}: {}", k, self.value_to_string(v)))
+                    .collect();
+                format!("{{{}}}", pairs.join(", "))
             }
             Value::Null => String::new(),
         }
