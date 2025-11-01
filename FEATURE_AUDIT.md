@@ -545,7 +545,7 @@ What's working well:
 
 - [TODO.md](TODO.md) - Feature checklist
 - [README.md](README.md) - User documentation
-- [rhtml_v2-2.pdf](rhtml_v2-2.pdf) - Vision document
+- [Vision.pdf](Vision.pdf) - Vision document
 
 ---
 

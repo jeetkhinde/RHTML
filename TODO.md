@@ -227,4 +227,4 @@
 - **Feature Audit:** See `FEATURE_AUDIT.md`
 - **Roadmap:** See `ROADMAP.md`
 - **Documentation:** See `README.md`
-- **PDF Spec:** See `rhtml_v2-2.pdf`
+- **PDF Spec:** See `Vision.pdf`

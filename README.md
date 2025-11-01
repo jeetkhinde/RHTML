@@ -545,7 +545,7 @@ Inspired by:
 - [TODO.md](TODO.md) - Feature tracking
 - [FEATURE_AUDIT.md](FEATURE_AUDIT.md) - Comprehensive feature audit
 - [ROADMAP.md](ROADMAP.md) - Implementation roadmap
-- [rhtml_v2-2.pdf](rhtml_v2-2.pdf) - Vision document
+- [Vision.pdf](Vision.pdf) - Vision document
 
 ---
 
