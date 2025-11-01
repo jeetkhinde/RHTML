@@ -38,6 +38,22 @@ impl TemplateLoader {
         }
     }
 
+    /// Create a new template loader with case-insensitive routing
+    pub fn with_case_insensitive(pages_dir: impl Into<PathBuf>, case_insensitive: bool) -> Self {
+        Self {
+            pages_dir: pages_dir.into(),
+            components_dir: "components".into(),
+            templates: HashMap::new(),
+            components: HashMap::new(),
+            router: Router::with_case_insensitive(case_insensitive),
+        }
+    }
+
+    /// Set case-insensitive mode
+    pub fn set_case_insensitive(&mut self, case_insensitive: bool) {
+        self.router.set_case_insensitive(case_insensitive);
+    }
+
     /// Load all templates from the pages directory
     pub fn load_all(&mut self) -> Result<()> {
         self.load_directory(&self.pages_dir.clone())?;

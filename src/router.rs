@@ -102,9 +102,15 @@ impl Route {
         }
     }
 
-    /// Check if this route matches a given path
+    /// Check if this route matches a given path (case-sensitive)
     /// Returns Some(params) if match, None otherwise
     pub fn matches(&self, path: &str) -> Option<HashMap<String, String>> {
+        self.matches_with_options(path, false)
+    }
+
+    /// Check if this route matches a given path with options
+    /// Returns Some(params) if match, None otherwise
+    pub fn matches_with_options(&self, path: &str, case_insensitive: bool) -> Option<HashMap<String, String>> {
         let pattern_segments: Vec<&str> = self.pattern.split('/').filter(|s| !s.is_empty()).collect();
         let path_segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
@@ -120,9 +126,17 @@ impl Route {
                 // Dynamic segment - extract parameter
                 let param_name = &pattern_seg[1..];
                 params.insert(param_name.to_string(), path_seg.to_string());
-            } else if pattern_seg != path_seg {
-                // Static segment must match exactly
-                return None;
+            } else {
+                // Static segment - check if it matches
+                let matches = if case_insensitive {
+                    pattern_seg.eq_ignore_ascii_case(path_seg)
+                } else {
+                    pattern_seg == path_seg
+                };
+
+                if !matches {
+                    return None;
+                }
             }
         }
 
@@ -151,6 +165,7 @@ impl Route {
 pub struct Router {
     routes: Vec<Route>,
     layouts: HashMap<String, Route>,
+    case_insensitive: bool,
 }
 
 impl Router {
@@ -159,7 +174,22 @@ impl Router {
         Self {
             routes: Vec::new(),
             layouts: HashMap::new(),
+            case_insensitive: false,
         }
+    }
+
+    /// Create a new router with case-insensitive matching
+    pub fn with_case_insensitive(case_insensitive: bool) -> Self {
+        Self {
+            routes: Vec::new(),
+            layouts: HashMap::new(),
+            case_insensitive,
+        }
+    }
+
+    /// Set case-insensitive mode
+    pub fn set_case_insensitive(&mut self, case_insensitive: bool) {
+        self.case_insensitive = case_insensitive;
     }
 
     /// Add a route
@@ -188,7 +218,7 @@ impl Router {
     /// Find a matching route for a given path
     pub fn match_route(&self, path: &str) -> Option<RouteMatch> {
         for route in &self.routes {
-            if let Some(params) = route.matches(path) {
+            if let Some(params) = route.matches_with_options(path, self.case_insensitive) {
                 return Some(RouteMatch {
                     route: route.clone(),
                     params,

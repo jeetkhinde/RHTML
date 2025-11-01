@@ -1,10 +1,13 @@
 use axum::{
-    extract::State,
-    response::{Html, IntoResponse, Response},
+    extract::{Query as AxumQuery, State},
+    response::{Html, IntoResponse, Json, Response},
     routing::get,
     Router,
+    http::{Method, HeaderMap},
+    body::Bytes,
 };
-use rhtml_app::{Renderer, TemplateLoader};
+use rhtml_app::{Renderer, TemplateLoader, RequestContext, QueryParams, FormData, Config};
+use serde_json::Value as JsonValue;
 use rhtml_app::hot_reload::{create_watcher, ChangeType};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -24,14 +27,24 @@ async fn main() {
 
     println!("🚀 RHTML App Starting...");
 
+    // Load configuration
+    let config = Config::load_default().unwrap_or_else(|e| {
+        eprintln!("⚠️  Failed to load config: {}", e);
+        eprintln!("   Using default configuration...");
+        Config::default()
+    });
+
+    println!("⚙️  Configuration:");
+    println!("   - Port: {}", config.server.port);
+    println!("   - Case-insensitive routing: {}", config.routing.case_insensitive);
+
     // Check if hot reload is enabled (default: true for development)
     let hot_reload_enabled = std::env::var("HOT_RELOAD")
-        .unwrap_or_else(|_| "true".to_string())
-        .parse::<bool>()
-        .unwrap_or(true);
+        .map(|v| v.parse::<bool>().unwrap_or(config.dev.hot_reload))
+        .unwrap_or(config.dev.hot_reload);
 
-    // Load all templates
-    let mut loader = TemplateLoader::new("pages");
+    // Load all templates with case-insensitive routing from config
+    let mut loader = TemplateLoader::with_case_insensitive("pages", config.routing.case_insensitive);
     match loader.load_all() {
         Ok(_) => {
             println!("✅ Loaded {} templates", loader.count());
@@ -95,10 +108,20 @@ async fn main() {
         template_loader: template_loader.clone(),
     };
 
-    // Build router
+    // Build router with support for all HTTP methods
     let mut app = Router::new()
-        .route("/", get(index_handler))
-        .route("/*path", get(template_handler))
+        .route("/",
+            get(index_handler)
+                .post(index_handler)
+                .put(index_handler)
+                .delete(index_handler)
+        )
+        .route("/*path",
+            get(template_handler)
+                .post(template_handler)
+                .put(template_handler)
+                .delete(template_handler)
+        )
         .with_state(state);
 
     // Add LiveReloadLayer if hot reload is enabled
@@ -122,21 +145,83 @@ async fn main() {
 }
 
 /// Handler for home page "/"
-async fn index_handler(State(state): State<AppState>) -> Response {
-    render_route(&state, "/").await
+async fn index_handler(
+    State(state): State<AppState>,
+    method: Method,
+    headers: HeaderMap,
+    query: AxumQuery<std::collections::HashMap<String, String>>,
+    body: Bytes,
+) -> Response {
+    let request_context = create_request_context(method, "/".to_string(), query.0, headers, body).await;
+    render_route(&state, "/", request_context).await
 }
 
 /// Handler for all other routes
 async fn template_handler(
     State(state): State<AppState>,
     axum::extract::Path(path): axum::extract::Path<String>,
+    method: Method,
+    headers: HeaderMap,
+    query: AxumQuery<std::collections::HashMap<String, String>>,
+    body: Bytes,
 ) -> Response {
     let route = format!("/{}", path);
-    render_route(&state, &route).await
+    let request_context = create_request_context(method, route.clone(), query.0, headers, body).await;
+    render_route(&state, &route, request_context).await
+}
+
+/// Create request context from Axum extractors
+async fn create_request_context(
+    method: Method,
+    path: String,
+    query_params: std::collections::HashMap<String, String>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> RequestContext {
+    // Create query params
+    let query = QueryParams::new(query_params);
+
+    // Parse form data based on content-type
+    let form = if method == Method::POST || method == Method::PUT || method == Method::DELETE {
+        if let Some(content_type) = headers.get("content-type") {
+            if let Ok(ct) = content_type.to_str() {
+                if ct.contains("application/json") {
+                    // Parse as JSON
+                    if let Ok(json) = serde_json::from_slice::<JsonValue>(&body) {
+                        FormData::from_json(json)
+                    } else {
+                        FormData::new()
+                    }
+                } else if ct.contains("application/x-www-form-urlencoded") {
+                    // Parse as form
+                    let form_str = String::from_utf8_lossy(&body);
+                    let mut fields = std::collections::HashMap::new();
+                    for pair in form_str.split('&') {
+                        if let Some((key, value)) = pair.split_once('=') {
+                            let key = urlencoding::decode(key).unwrap_or_default().to_string();
+                            let value = urlencoding::decode(value).unwrap_or_default().to_string();
+                            fields.insert(key, value);
+                        }
+                    }
+                    FormData::from_fields(fields)
+                } else {
+                    FormData::new()
+                }
+            } else {
+                FormData::new()
+            }
+        } else {
+            FormData::new()
+        }
+    } else {
+        FormData::new()
+    };
+
+    RequestContext::new(method, path, query, form, headers)
 }
 
 /// Render a route with layout
-async fn render_route(state: &AppState, route: &str) -> Response {
+async fn render_route(state: &AppState, route: &str, request_context: RequestContext) -> Response {
     let loader = state.template_loader.read().await;
 
     // Use the router to match the route
@@ -146,7 +231,7 @@ async fn render_route(state: &AppState, route: &str) -> Response {
             // Try direct template lookup as fallback
             if loader.get(route).is_some() {
                 drop(loader);
-                return render_route_direct(state, route).await;
+                return render_route_direct(state, route, request_context).await;
             }
             return error_response(
                 404,
@@ -195,10 +280,25 @@ async fn render_route(state: &AppState, route: &str) -> Response {
         renderer.set_var(param_name, rhtml_app::parser::expression::Value::String(param_value.clone()));
     }
 
-    // Set up demo data based on route
+    // Set request context data as variables
+    setup_request_context(&mut renderer, &request_context);
+
+    // Set up demo data based on route (for backward compatibility)
     setup_demo_data(&mut renderer, route, &route_match.params);
 
-    // Render the page with layout
+    // Check if client wants JSON response (content negotiation)
+    if request_context.accepts_json() {
+        // Return JSON response (you can customize this to return actual data)
+        let response_data = serde_json::json!({
+            "route": route,
+            "method": request_context.method.as_str(),
+            "query": request_context.query.as_map(),
+            "form": request_context.form.as_map(),
+        });
+        return Json(response_data).into_response();
+    }
+
+    // Render the page with layout (HTML response)
     match renderer.render_with_layout(&layout_template.content, &page_template.content) {
         Ok(html) => Html(html).into_response(),
         Err(e) => error_response(500, "Render Error", &format!("{}", e)),
@@ -206,7 +306,7 @@ async fn render_route(state: &AppState, route: &str) -> Response {
 }
 
 /// Render a route directly (fallback for old-style routes)
-async fn render_route_direct(state: &AppState, route: &str) -> Response {
+async fn render_route_direct(state: &AppState, route: &str, request_context: RequestContext) -> Response {
     let loader = state.template_loader.read().await;
 
     let page_template = match loader.get(route) {
@@ -235,12 +335,76 @@ async fn render_route_direct(state: &AppState, route: &str) -> Response {
     drop(loader);
 
     let mut renderer = Renderer::with_loader(loader_arc);
+
+    // Set request context data as variables
+    setup_request_context(&mut renderer, &request_context);
+
     setup_demo_data(&mut renderer, route, &std::collections::HashMap::new());
+
+    // Check if client wants JSON response (content negotiation)
+    if request_context.accepts_json() {
+        let response_data = serde_json::json!({
+            "route": route,
+            "method": request_context.method.as_str(),
+            "query": request_context.query.as_map(),
+            "form": request_context.form.as_map(),
+        });
+        return Json(response_data).into_response();
+    }
 
     match renderer.render_with_layout(&layout_template.content, &page_template.content) {
         Ok(html) => Html(html).into_response(),
         Err(e) => error_response(500, "Render Error", &format!("{}", e)),
     }
+}
+
+/// Setup request context data as template variables
+fn setup_request_context(renderer: &mut Renderer, ctx: &RequestContext) {
+    use rhtml_app::parser::expression::Value;
+
+    // Set HTTP method
+    renderer.set_var("request_method", Value::String(ctx.method.as_str().to_string()));
+
+    // Set path
+    renderer.set_var("request_path", Value::String(ctx.path.clone()));
+
+    // Set query parameters as an object
+    let mut query_map = std::collections::HashMap::new();
+    for (key, value) in ctx.query.as_map() {
+        query_map.insert(key.clone(), Value::String(value.clone()));
+    }
+    renderer.set_var("query", Value::Object(query_map.clone()));
+
+    // Also set individual query params
+    for (key, value) in ctx.query.as_map() {
+        renderer.set_var(&format!("query_{}", key), Value::String(value.clone()));
+    }
+
+    // Set form data as an object
+    let mut form_map = std::collections::HashMap::new();
+    for (key, value) in ctx.form.as_map() {
+        form_map.insert(key.clone(), Value::String(value.clone()));
+    }
+    renderer.set_var("form", Value::Object(form_map.clone()));
+
+    // Also set individual form fields
+    for (key, value) in ctx.form.as_map() {
+        renderer.set_var(&format!("form_{}", key), Value::String(value.clone()));
+    }
+
+    // Set cookies as an object
+    let mut cookies_map = std::collections::HashMap::new();
+    for (key, value) in &ctx.cookies {
+        cookies_map.insert(key.clone(), Value::String(value.clone()));
+    }
+    renderer.set_var("cookies", Value::Object(cookies_map));
+
+    // Set request info
+    renderer.set_var("is_get", Value::Bool(ctx.is_get()));
+    renderer.set_var("is_post", Value::Bool(ctx.is_post()));
+    renderer.set_var("is_put", Value::Bool(ctx.is_put()));
+    renderer.set_var("is_delete", Value::Bool(ctx.is_delete()));
+    renderer.set_var("accepts_json", Value::Bool(ctx.accepts_json()));
 }
 
 /// Setup demo data for specific routes
