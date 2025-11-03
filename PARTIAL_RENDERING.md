@@ -83,6 +83,226 @@ cmp Page(props: &PageProps<()>) {
 - `{htmx_target}` - The target element ID (from `hx-target`)
 - `{htmx_trigger}` - The triggering element (from `hx-trigger`)
 
+## @layout Decorator
+
+### Overview
+
+The `@layout` decorator gives you **declarative control** over layout rendering at the file level. Place it at the top of your `.rhtml` file to specify layout behavior.
+
+### Syntax
+
+```rhtml
+@layout(false)         // No layout
+@layout("custom")      // Use specific layout (future feature)
+// No decorator         // Use default _layout.rhtml
+```
+
+### @layout(false) - No Layout
+
+Explicitly disable layout wrapping for the entire file:
+
+```rhtml
+@layout(false)
+
+cmp Page(props: &PageProps<()>) {
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Custom Page</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-900 text-white">
+        <div class="container mx-auto p-8">
+            <h1>No Layout Wrapper!</h1>
+            <p>Full control over HTML structure</p>
+        </div>
+    </body>
+    </html>
+}
+```
+
+**Result:** Page renders without `_layout.rhtml` wrapper.
+
+### Use Cases for @layout(false)
+
+**1. API Endpoints Returning HTML**
+```rhtml
+@layout(false)
+
+cmp Page(props: &PageProps<()>) {
+    <div class="api-response">
+        <h2>User Data</h2>
+        <p>Name: John Doe</p>
+    </div>
+}
+```
+
+**2. Email Templates**
+```rhtml
+@layout(false)
+
+cmp Page(props: &PageProps<()>) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            /* Email-safe inline CSS */
+        </style>
+    </head>
+    <body>
+        <table width="600">
+            <tr><td>Email content...</td></tr>
+        </table>
+    </body>
+    </html>
+}
+```
+
+**3. Custom Document Structure**
+```rhtml
+@layout(false)
+
+cmp Page(props: &PageProps<()>) {
+    <!DOCTYPE html>
+    <html lang="en" data-theme="dark">
+    <head>
+        <!-- Custom meta tags, different from layout -->
+        <meta name="robots" content="noindex">
+    </head>
+    <body>
+        <!-- Your content -->
+    </body>
+    </html>
+}
+```
+
+### Combining @layout(false) with Named Partials
+
+**Powerful pattern:** Use `@layout(false)` + named partials for complete flexibility:
+
+```rhtml
+@layout(false)
+
+// Named partial: ProductCard
+// Access: /products?partial=ProductCard
+partial ProductCard(props: &PartialProps<()>) {
+    <div class="product-card">
+        <h3>{query_name}</h3>
+        <p>${query_price}</p>
+    </div>
+}
+
+// Named partial: ProductList
+// Access: /products?partial=ProductList
+partial ProductList(props: &PartialProps<()>) {
+    <div class="grid grid-cols-3 gap-4">
+        <!-- Product grid -->
+    </div>
+}
+
+// Full page component (no layout)
+cmp Page(props: &PageProps<()>) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Products</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/htmx.org"></script>
+    </head>
+    <body>
+        <div class="container mx-auto p-8">
+            <h1>Product Catalog</h1>
+
+            <!-- Load partials dynamically -->
+            <button
+                hx-get="/products?partial=ProductList"
+                hx-target="#container">
+                Load Products
+            </button>
+
+            <div id="container"></div>
+        </div>
+    </body>
+    </html>
+}
+```
+
+**Benefits:**
+- ✅ No layout wrapper - custom HTML structure
+- ✅ Multiple partials in one file
+- ✅ Perfect for HTMX
+- ✅ Domain cohesion (all product-related fragments together)
+
+### @layout vs Other Methods
+
+| Method | When Layout Skipped | Declarative | File-Level |
+|--------|---------------------|-------------|------------|
+| **@layout(false)** | Always (explicit) | ✅ Yes | ✅ Yes |
+| **No Page component** | Always (implicit) | ❌ No | ✅ Yes |
+| **?partial=true** | Per request | ❌ No | ❌ No |
+| **HX-Request header** | Per request | ❌ No | ❌ No |
+
+**When to use @layout(false):**
+- ✅ Page should NEVER use layout
+- ✅ Custom HTML structure needed
+- ✅ API endpoints, email templates, PDFs
+- ✅ Clear, declarative intent
+
+**When to use other methods:**
+- ✅ Dynamic partial requests (HTMX)
+- ✅ File-based partials (no Page component)
+- ✅ Conditional partial rendering
+
+### Examples
+
+**Example 1: API Endpoint**
+```rhtml
+<!-- pages/api.rhtml -->
+@layout(false)
+
+cmp Page(props: &PageProps<()>) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>API Response</title>
+    </head>
+    <body>
+        <div class="api-response">
+            <h2>Data</h2>
+            <pre>{request_path}</pre>
+        </div>
+    </body>
+    </html>
+}
+```
+**Access:** `/api` → Custom HTML, no layout
+
+**Example 2: Combined with Partials**
+```rhtml
+<!-- pages/dashboard.rhtml -->
+@layout(false)
+
+partial Metrics(...) { /* KPIs */ }
+partial Charts(...) { /* Analytics */ }
+
+cmp Page(...) {
+    <!DOCTYPE html>
+    <html>
+    <head><title>Dashboard</title></head>
+    <body>
+        <div id="metrics"
+             hx-get="/dashboard?partial=Metrics"
+             hx-trigger="load"></div>
+    </body>
+    </html>
+}
+```
+**Access:**
+- `/dashboard` → Full page, no layout
+- `/dashboard?partial=Metrics` → Just metrics
+
 ## Named Partials (Multiple Partials in One File)
 
 For better organization, RHTML supports **named partials** - multiple partials defined in a single file and accessed via `?partial=Name`.

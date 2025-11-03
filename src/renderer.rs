@@ -8,6 +8,15 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::sync::Arc;
 
+/// Layout directive parsed from @layout(...) decorator
+#[derive(Debug, Clone, PartialEq)]
+pub enum LayoutDirective {
+    /// @layout(false) - No layout should be applied
+    None,
+    /// @layout("name") - Use custom layout by name
+    Custom(String),
+}
+
 /// HTML renderer with directive support
 pub struct Renderer {
     evaluator: ExpressionEvaluator,
@@ -694,8 +703,9 @@ impl Renderer {
     /// Render a partial (without layout)
     /// Use this for HTML fragments, HTMX responses, or pages without Page component
     pub fn render_partial(&mut self, content: &str) -> Result<String> {
-        // Simply render the content directly without layout wrapping
-        self.render(content)
+        // Strip @layout directive if present, then render without layout wrapping
+        let clean_content = self.strip_layout_directive(content);
+        self.render(&clean_content)
     }
 
     /// Check if content should be rendered as a partial
@@ -777,16 +787,49 @@ impl Renderer {
         Ok(interpolated)
     }
 
+    /// Parse @layout directive from page content
+    /// Returns: Some(LayoutDirective) if found, None if not present
+    ///
+    /// Supported formats:
+    /// - @layout(false) -> No layout
+    /// - @layout("custom") -> Use specific layout
+    /// - No directive -> Default behavior (use _layout.rhtml)
+    pub fn parse_layout_directive(&self, content: &str) -> Option<LayoutDirective> {
+        // Pattern: @layout(false) or @layout("name")
+        let re = Regex::new(r#"@layout\((false|"([^"]+)")\)"#).unwrap();
+
+        if let Some(caps) = re.captures(content) {
+            if caps.get(1).map(|m| m.as_str()) == Some("false") {
+                // @layout(false)
+                return Some(LayoutDirective::None);
+            } else if let Some(name) = caps.get(2) {
+                // @layout("custom")
+                return Some(LayoutDirective::Custom(name.as_str().to_string()));
+            }
+        }
+
+        None
+    }
+
+    /// Strip @layout directive from content (for rendering)
+    pub fn strip_layout_directive(&self, content: &str) -> String {
+        let re = Regex::new(r#"@layout\((false|"[^"]+")\)\s*\n?"#).unwrap();
+        re.replace(content, "").to_string()
+    }
+
     pub fn render_with_layout(&mut self, layout_content: &str, page_content: &str) -> Result<String> {
+        // Strip @layout directive if present (shouldn't normally be here, but just in case)
+        let clean_page_content = self.strip_layout_directive(page_content);
+
         // Extract slots from page (before rendering)
-        let slots = self.extract_slots(page_content);
+        let slots = self.extract_slots(&clean_page_content);
 
         // Extract and process layout HTML WITHOUT interpolations yet
         let layout_html_raw = self.extract_html(layout_content);
         let layout_processed = self.process_directives(&layout_html_raw);
 
         // Render page HTML fully (with interpolations)
-        let page_html = self.render(page_content)?;
+        let page_html = self.render(&clean_page_content)?;
 
         // Replace {slots.content} with page HTML
         let mut result = layout_processed.replace("{slots.content}", &page_html);
