@@ -46,8 +46,37 @@ impl Renderer {
         Ok(interpolated)
     }
 
+    /// Check if content has a cmp component
+    fn has_component(&self, content: &str) -> bool {
+        // Skip slots block if exists
+        let search_start = if let Some(slots_pos) = content.find("slots {") {
+            let mut depth = 0;
+            let mut found_opening = false;
+            let mut slots_end = slots_pos;
+
+            for (byte_idx, ch) in content[slots_pos..].char_indices() {
+                if ch == '{' {
+                    depth += 1;
+                    found_opening = true;
+                } else if ch == '}' {
+                    depth -= 1;
+                    if found_opening && depth == 0 {
+                        slots_end = slots_pos + byte_idx + ch.len_utf8();
+                        break;
+                    }
+                }
+            }
+            slots_end
+        } else {
+            0
+        };
+
+        content[search_start..].contains("cmp ")
+    }
+
     /// Extract HTML content from RHTML template
     /// This needs to extract ONLY the cmp function content, not slots block
+    /// If no cmp component exists, returns the entire content (for partials)
     fn extract_html(&self, content: &str) -> String {
         // First, skip past any slots block if it exists
         let search_start = if let Some(slots_pos) = content.find("slots {") {
@@ -103,7 +132,8 @@ impl Renderer {
             }
         }
 
-        content.to_string()
+        // No cmp component found - treat as partial (return entire content)
+        content.trim().to_string()
     }
 
     /// Extract slot values from page template
@@ -661,6 +691,19 @@ impl Renderer {
     }
 
     /// Render page with layout
+    /// Render a partial (without layout)
+    /// Use this for HTML fragments, HTMX responses, or pages without Page component
+    pub fn render_partial(&mut self, content: &str) -> Result<String> {
+        // Simply render the content directly without layout wrapping
+        self.render(content)
+    }
+
+    /// Check if content should be rendered as a partial
+    /// Returns true if content has no cmp component
+    pub fn is_partial(&self, content: &str) -> bool {
+        !self.has_component(content)
+    }
+
     pub fn render_with_layout(&mut self, layout_content: &str, page_content: &str) -> Result<String> {
         // Extract slots from page (before rendering)
         let slots = self.extract_slots(page_content);

@@ -1,0 +1,196 @@
+slots {
+title: "HTMX Partial Rendering Demo",
+footer: "HTMX + RHTML = Perfect Match!"
+}
+
+cmp Page(props: &PageProps<()>) {
+  <div class="container mx-auto p-8 max-w-4xl">
+    <h1 class="text-4xl font-bold mb-4">HTMX + Partial Rendering Demo</h1>
+    <p class="text-gray-600 mb-8">
+      This demo shows how RHTML automatically returns partials (HTML fragments) for HTMX requests.
+    </p>
+
+    <!-- Example 1: Load user partial -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Example 1: Load Partial</h2>
+      <p class="text-gray-600 mb-4">
+        Click the button to load a user partial without reloading the page.
+      </p>
+
+      <button
+        hx-get="/partials/user-item?name=John Doe&email=john@example.com"
+        hx-target="#user-container"
+        hx-swap="innerHTML"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Load User Partial
+      </button>
+
+      <div id="user-container" class="mt-4 border rounded"></div>
+    </div>
+
+    <!-- Example 2: Force partial with query param -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Example 2: Force Partial Mode</h2>
+      <p class="text-gray-600 mb-4">
+        Even full pages can be rendered as partials using <code>?partial=true</code>.
+      </p>
+
+      <button
+        hx-get="/about?partial=true"
+        hx-target="#partial-container"
+        hx-swap="innerHTML"
+        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+      >
+        Load About Page (Partial)
+      </button>
+
+      <div id="partial-container" class="mt-4 border rounded p-4"></div>
+    </div>
+
+    <!-- Example 3: Dynamic content loading -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">Example 3: Dynamic User List</h2>
+      <p class="text-gray-600 mb-4">
+        Load multiple users dynamically.
+      </p>
+
+      <div class="flex gap-2 mb-4">
+        <button
+          hx-get="/partials/user-item?name=Alice Smith&email=alice@example.com"
+          hx-target="#user-list"
+          hx-swap="beforeend"
+          class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+        >
+          Add Alice
+        </button>
+
+        <button
+          hx-get="/partials/user-item?name=Bob Johnson&email=bob@example.com"
+          hx-target="#user-list"
+          hx-swap="beforeend"
+          class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+        >
+          Add Bob
+        </button>
+
+        <button
+          hx-get="/partials/user-item?name=Charlie Brown&email=charlie@example.com"
+          hx-target="#user-list"
+          hx-swap="beforeend"
+          class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+        >
+          Add Charlie
+        </button>
+
+        <button
+          onclick="document.getElementById('user-list').innerHTML = ''"
+          class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+        >
+          Clear All
+        </button>
+      </div>
+
+      <div id="user-list" class="border rounded"></div>
+    </div>
+
+    <!-- How it works -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+      <h2 class="text-2xl font-semibold mb-4">How It Works</h2>
+
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-semibold text-lg">1. Automatic Detection</h3>
+          <p class="text-gray-700">
+            RHTML automatically detects HTMX requests via the <code>HX-Request</code> header
+            and returns partials without the layout.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-lg">2. No Page Component = Partial</h3>
+          <p class="text-gray-700">
+            Files without a <code>cmp Page()</code> component are automatically treated as partials.
+            Example: <code>partials/user-item.rhtml</code>
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-lg">3. Manual Override</h3>
+          <p class="text-gray-700">
+            Use <code>?partial=true</code> to force any page to render as a partial,
+            or set the <code>X-Partial</code> header.
+          </p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-lg">4. Template Variables</h3>
+          <p class="text-gray-700">
+            Access HTMX info in templates:
+          </p>
+          <ul class="list-disc ml-6 mt-2 text-sm font-mono">
+            <li><code>{is_htmx}</code> - true if HTMX request</li>
+            <li><code>{wants_partial}</code> - true if partial requested</li>
+            <li><code>{htmx_target}</code> - target element ID</li>
+            <li><code>{htmx_trigger}</code> - trigger element</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code Examples -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-2xl font-semibold mb-4">Code Examples</h2>
+
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-semibold mb-2">Creating a Partial File:</h3>
+          <pre class="bg-gray-100 p-4 rounded text-sm overflow-x-auto"><code>&lt;!-- pages/partials/user-item.rhtml --&gt;
+&lt;!-- No cmp Page() = automatic partial --&gt;
+&lt;div class="user-item"&gt;
+    &lt;h3&gt;{query_name}&lt;/h3&gt;
+    &lt;p&gt;{query_email}&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Using HTMX to Load It:</h3>
+          <pre class="bg-gray-100 p-4 rounded text-sm overflow-x-auto"><code>&lt;button
+    hx-get="/partials/user-item?name=John&email=john@example.com"
+    hx-target="#container"
+    hx-swap="innerHTML"&gt;
+    Load User
+&lt;/button&gt;</code></pre>
+        </div>
+
+        <div>
+          <h3 class="font-semibold mb-2">Forcing Partial Mode:</h3>
+          <pre class="bg-gray-100 p-4 rounded text-sm overflow-x-auto"><code>&lt;!-- Add ?partial=true to any route --&gt;
+&lt;button hx-get="/about?partial=true" hx-target="#container"&gt;
+    Load About (No Layout)
+&lt;/button&gt;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back to Home -->
+    <div class="mt-8">
+      <a href="/" class="text-blue-600 hover:text-blue-800 underline">← Back to Home</a>
+    </div>
+  </div>
+}
+
+<style>
+code {
+    background-color: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+}
+</style>

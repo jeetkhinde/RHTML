@@ -298,10 +298,22 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
         return Json(response_data).into_response();
     }
 
-    // Render the page with layout (HTML response)
-    match renderer.render_with_layout(&layout_template.content, &page_template.content) {
-        Ok(html) => Html(html).into_response(),
-        Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+    // Check if this is a partial request OR if the page has no Page component
+    let is_partial_file = renderer.is_partial(&page_template.content);
+    let wants_partial = request_context.wants_partial();
+
+    if is_partial_file || wants_partial {
+        // Render as partial (without layout)
+        match renderer.render_partial(&page_template.content) {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+        }
+    } else {
+        // Render the page with layout (HTML response)
+        match renderer.render_with_layout(&layout_template.content, &page_template.content) {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+        }
     }
 }
 
@@ -352,9 +364,21 @@ async fn render_route_direct(state: &AppState, route: &str, request_context: Req
         return Json(response_data).into_response();
     }
 
-    match renderer.render_with_layout(&layout_template.content, &page_template.content) {
-        Ok(html) => Html(html).into_response(),
-        Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+    // Check if this is a partial request OR if the page has no Page component
+    let is_partial_file = renderer.is_partial(&page_template.content);
+    let wants_partial = request_context.wants_partial();
+
+    if is_partial_file || wants_partial {
+        // Render as partial (without layout)
+        match renderer.render_partial(&page_template.content) {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+        }
+    } else {
+        match renderer.render_with_layout(&layout_template.content, &page_template.content) {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => error_response(500, "Render Error", &format!("{}", e)),
+        }
     }
 }
 
@@ -405,6 +429,16 @@ fn setup_request_context(renderer: &mut Renderer, ctx: &RequestContext) {
     renderer.set_var("is_put", Value::Bool(ctx.is_put()));
     renderer.set_var("is_delete", Value::Bool(ctx.is_delete()));
     renderer.set_var("accepts_json", Value::Bool(ctx.accepts_json()));
+
+    // Set partial/HTMX info
+    renderer.set_var("wants_partial", Value::Bool(ctx.wants_partial()));
+    renderer.set_var("is_htmx", Value::Bool(ctx.is_htmx()));
+    if let Some(target) = ctx.htmx_target() {
+        renderer.set_var("htmx_target", Value::String(target.to_string()));
+    }
+    if let Some(trigger) = ctx.htmx_trigger() {
+        renderer.set_var("htmx_trigger", Value::String(trigger.to_string()));
+    }
 }
 
 /// Setup demo data for specific routes
