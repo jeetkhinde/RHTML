@@ -86,6 +86,45 @@ impl RequestContext {
         }
     }
 
+    /// Check if request wants a partial/fragment response (without layout)
+    /// Returns true if:
+    /// - Query parameter ?partial=true is present
+    /// - HX-Request header is present (HTMX request)
+    /// - X-Partial header is present
+    pub fn wants_partial(&self) -> bool {
+        // Check query parameter
+        if self.query.get("partial") == Some(&"true".to_string()) {
+            return true;
+        }
+
+        // Check HTMX header
+        if self.get_header("hx-request").is_some() {
+            return true;
+        }
+
+        // Check X-Partial header
+        if self.get_header("x-partial").is_some() {
+            return true;
+        }
+
+        false
+    }
+
+    /// Check if this is an HTMX request
+    pub fn is_htmx(&self) -> bool {
+        self.get_header("hx-request").is_some()
+    }
+
+    /// Get HTMX target element (if present)
+    pub fn htmx_target(&self) -> Option<&str> {
+        self.get_header("hx-target")
+    }
+
+    /// Get HTMX trigger element (if present)
+    pub fn htmx_trigger(&self) -> Option<&str> {
+        self.get_header("hx-trigger")
+    }
+
     /// Check if this is a specific method
     pub fn is_get(&self) -> bool {
         self.method == Method::GET
