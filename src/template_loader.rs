@@ -230,6 +230,27 @@ impl TemplateLoader {
         }
     }
 
+    /// Get the error page for a specific route pattern
+    /// Looks for section-specific error page first, then root error page
+    pub fn get_error_page_for_route(&self, pattern: &str) -> Option<&Template> {
+        if let Some(error_route) = self.router.get_error_page(pattern) {
+            // Convert pattern back to template key
+            let error_key = if error_route.pattern == "/" {
+                "/_error".to_string()
+            } else {
+                format!("{}/_error", error_route.pattern)
+            };
+            self.templates.get(&error_key)
+        } else {
+            None
+        }
+    }
+
+    /// Get the root error page
+    pub fn get_error_page(&self) -> Option<&Template> {
+        self.templates.get("/_error")
+    }
+
     /// Get the router
     pub fn router(&self) -> &Router {
         &self.router

@@ -233,11 +233,14 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
                 drop(loader);
                 return render_route_direct(state, route, request_context).await;
             }
-            return error_response(
+            drop(loader);
+            return custom_error_response(
+                state,
                 404,
                 "Page Not Found",
                 &format!("Route '{}' not found", route),
-            );
+                Some(route),
+            ).await;
         }
     };
 
@@ -615,7 +618,60 @@ fn setup_demo_data(renderer: &mut Renderer, route: &str, _params: &std::collecti
     }
 }
 
-/// Create an error response
+/// Create a custom error response using _error.rhtml if available
+async fn custom_error_response(
+    state: &AppState,
+    status: u16,
+    title: &str,
+    message: &str,
+    route_pattern: Option<&str>,
+) -> Response {
+    let loader = state.template_loader.read().await;
+
+    // Try to get custom error page for the route
+    let error_template = if let Some(pattern) = route_pattern {
+        loader.get_error_page_for_route(pattern)
+            .or_else(|| loader.get_error_page())
+    } else {
+        loader.get_error_page()
+    };
+
+    if let Some(error_page) = error_template {
+        // Custom error page found - render it
+        let error_page_clone = error_page.clone();
+        let loader_arc = Arc::new((*loader).clone());
+        drop(loader);
+
+        let mut renderer = Renderer::with_loader(loader_arc);
+
+        // Set error variables
+        renderer.set_var("status", rhtml_app::parser::expression::Value::Number(status as f64));
+        renderer.set_var("title", rhtml_app::parser::expression::Value::String(title.to_string()));
+        renderer.set_var("message", rhtml_app::parser::expression::Value::String(message.to_string()));
+
+        // Render error page (without layout, as error pages should be standalone)
+        match renderer.render_partial(&error_page_clone.content) {
+            Ok(html) => {
+                return (
+                    axum::http::StatusCode::from_u16(status).unwrap(),
+                    Html(html),
+                )
+                    .into_response();
+            }
+            Err(_) => {
+                // Fall through to default error response
+                return error_response(status, title, message);
+            }
+        }
+    } else {
+        drop(loader);
+    }
+
+    // Fall back to default error response
+    error_response(status, title, message)
+}
+
+/// Create a default error response (fallback when no custom error page exists)
 fn error_response(status: u16, title: &str, message: &str) -> Response {
     let html = format!(
         r#"
