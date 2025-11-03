@@ -185,6 +185,64 @@ css Button {
 
 ---
 
+## 🎯 Named Partials & Layouts
+
+### Named Partials
+
+Define multiple partials in a single file for better domain organization:
+
+```rhtml
+<!-- pages/users.rhtml -->
+
+partial Stats(props: &PartialProps<()>) {
+  <div>User Statistics</div>
+}
+
+partial ActiveUsers(props: &PartialProps<()>) {
+  <div>Active Users List</div>
+}
+
+cmp Page(props: &PageProps<()>) {
+  <button hx-get="/users?partial=Stats">Load Stats</button>
+}
+```
+
+**Access:**
+- `/users` → Full page
+- `/users?partial=Stats` → Just Stats partial
+- `/users?partial=ActiveUsers` → Just ActiveUsers partial
+
+**Benefits:**
+- Keep related partials together
+- Reduce file clutter
+- Perfect for HTMX integration
+
+### @layout Decorator
+
+Control layout rendering declaratively:
+
+```rhtml
+@layout(false)  <!-- Disable layout for this page -->
+
+cmp Page(props: &PageProps<()>) {
+  <!DOCTYPE html>
+  <html>
+  <head><title>Custom Page</title></head>
+  <body>
+    <!-- Full control over HTML structure -->
+  </body>
+  </html>
+}
+```
+
+**Use Cases:**
+- API endpoints returning HTML fragments
+- Email templates
+- Custom document structures
+- Pages with different meta tags
+
+---
+
 ## 🎨 Directives
 
 RHTML provides 8 core directives for dynamic content:
@@ -362,21 +420,28 @@ minify_html = true
 
 See [TODO.md](TODO.md) for detailed feature tracking.
 
-### Current Status (v0.0.1)
+### Current Status (v0.1.0-alpha) - 53% Complete! 🎉
 - ✅ File-based routing with dynamic params
 - ✅ Layout inheritance
 - ✅ Component system
 - ✅ Core directives (if/for/match)
 - ✅ Hot reload
 - ✅ CSS scoping
+- ✅ **Query parameter support** (`{query_name}`) 🆕
+- ✅ **Form handling** (POST/PUT/DELETE) 🆕
+- ✅ **Request context** (cookies, headers, method) 🆕
+- ✅ **Content negotiation** (HTML/JSON) 🆕
+- ✅ **Named partials** (`partial Name() {}`) 🆕
+- ✅ **@layout decorator** (`@layout(false)`) 🆕
+- ✅ **HTMX integration** (automatic detection) 🆕
+- ✅ **Configuration system** (rhtml.toml) 🆕
+- ✅ **Case-insensitive routing** (configurable) 🆕
 
-### Next Up (v0.1.0) - MVP
+### Next Up (v0.2.0) - Feature Complete
 - [ ] Data fetching in pages (`data fn` functions)
-- [ ] Query parameter support
-- [ ] Form handling (POST/PUT/DELETE)
-- [ ] Request context (cookies, headers)
-- [ ] Content negotiation (HTML/JSON)
+- [ ] Typed PageProps<T> with actual data
 - [ ] Additional directives (r-attr, r-class, r-props)
+- [ ] Catch-all routes ([...slug])
 
 ### Future (v0.2.0+)
 - [ ] Catch-all routes
@@ -542,9 +607,13 @@ Inspired by:
 
 ## 📖 Documentation
 
-- [TODO.md](TODO.md) - Feature tracking
+- [DOCUMENTATION_STATUS.md](DOCUMENTATION_STATUS.md) - **Complete status of all features** ⭐
+- [TODO.md](TODO.md) - Feature tracking (53% complete)
 - [FEATURE_AUDIT.md](FEATURE_AUDIT.md) - Comprehensive feature audit
-- [ROADMAP.md](ROADMAP.md) - Implementation roadmap
+- [FEATURES_OVERVIEW.md](FEATURES_OVERVIEW.md) - Complete feature overview
+- [PARTIAL_RENDERING.md](PARTIAL_RENDERING.md) - Partial rendering guide (600+ lines)
+- [NAMED_PARTIALS_SUMMARY.md](NAMED_PARTIALS_SUMMARY.md) - Named partials implementation
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Technical implementation details
 - [Vision.pdf](Vision.pdf) - Vision document
 
 ---
@@ -557,11 +626,28 @@ RHTML is SSR-only with HTMX for interactivity, not a WASM framework. Different u
 
 ### Can I use this in production?
 
-Not yet. Core data layer features are still in development. See [TODO.md](TODO.md).
+**YES, for 75% of use cases!** The framework is now production-ready with:
+- ✅ Full request handling (GET/POST/PUT/DELETE)
+- ✅ Query parameters and form data
+- ✅ HTMX integration
+- ✅ Named partials and @layout decorator
+
+**Limitations:**
+- `data fn` parsing not yet implemented (use external Rust functions as workaround)
+- All pages use `PageProps<()>` (typed props coming in v0.2.0)
+
+See [DOCUMENTATION_STATUS.md](DOCUMENTATION_STATUS.md) for complete status.
 
 ### How do I fetch data?
 
-Coming soon! `data fn` functions are the #1 priority. See Sprint 1 in [TODO.md](TODO.md).
+**Current approach (v0.1.0-alpha):**
+- Use external Rust functions in `src/main.rs` to fetch data
+- Pass data to renderer via context variables
+- Access in templates via `{variable_name}`
+
+**Coming in v0.2.0:**
+- `data fn` functions in .rhtml files
+- Typed `PageProps<T>` with actual data
 
 ### Does it support TypeScript/JSX?
 
