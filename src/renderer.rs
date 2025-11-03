@@ -704,6 +704,79 @@ impl Renderer {
         !self.has_component(content)
     }
 
+    /// Check if content has named partials (partial Name(...) syntax)
+    pub fn has_named_partials(&self, content: &str) -> bool {
+        content.contains("partial ")
+    }
+
+    /// List all named partials in content
+    pub fn list_partials(&self, content: &str) -> Vec<String> {
+        let mut partials = Vec::new();
+        let re = Regex::new(r"partial\s+(\w+)\s*\(").unwrap();
+
+        for cap in re.captures_iter(content) {
+            if let Some(name) = cap.get(1) {
+                partials.push(name.as_str().to_string());
+            }
+        }
+
+        partials
+    }
+
+    /// Extract a named partial by name
+    /// Finds: partial Name(...) { ... }
+    fn extract_named_partial(&self, content: &str, name: &str) -> Result<String> {
+        // Find pattern: partial {name}(
+        let search_pattern = format!("partial {}", name);
+
+        if let Some(start_pos) = content.find(&search_pattern) {
+            // Find the opening brace after partial Name(...)
+            let after_partial = &content[start_pos..];
+
+            if let Some(brace_pos) = after_partial.find('{') {
+                let abs_brace_pos = start_pos + brace_pos;
+
+                // Find matching closing brace
+                let mut depth = 0;
+                let mut end_pos = None;
+
+                for (byte_idx, ch) in content[abs_brace_pos..].char_indices() {
+                    if ch == '{' {
+                        depth += 1;
+                    } else if ch == '}' {
+                        depth -= 1;
+                        if depth == 0 {
+                            end_pos = Some(abs_brace_pos + byte_idx);
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(end) = end_pos {
+                    let html = &content[abs_brace_pos + 1..end];
+                    return Ok(html.trim().to_string());
+                }
+            }
+        }
+
+        anyhow::bail!("Partial '{}' not found", name)
+    }
+
+    /// Render a named partial with name
+    /// Example: render_named_partial(content, "Stats")
+    pub fn render_named_partial(&mut self, content: &str, name: &str) -> Result<String> {
+        // Extract the named partial HTML
+        let partial_html = self.extract_named_partial(content, name)?;
+
+        // TODO: In future, execute associated data function here
+        // For now, just render the HTML with current variables
+
+        let processed = self.process_directives(&partial_html);
+        let interpolated = self.process_interpolations(&processed);
+
+        Ok(interpolated)
+    }
+
     pub fn render_with_layout(&mut self, layout_content: &str, page_content: &str) -> Result<String> {
         // Extract slots from page (before rendering)
         let slots = self.extract_slots(page_content);

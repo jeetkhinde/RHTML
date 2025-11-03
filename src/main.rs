@@ -298,6 +298,34 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
         return Json(response_data).into_response();
     }
 
+    // Check for named partial request: ?partial=Name
+    if let Some(partial_name) = request_context.query.get("partial") {
+        // Check if it's a boolean "true" (old behavior) or a name (new behavior)
+        if partial_name != "true" {
+            // Named partial requested
+            match renderer.render_named_partial(&page_template.content, partial_name) {
+                Ok(html) => return Html(html).into_response(),
+                Err(_e) => {
+                    // List available partials for helpful error message
+                    let available = renderer.list_partials(&page_template.content);
+                    let available_str = if available.is_empty() {
+                        "none".to_string()
+                    } else {
+                        available.join(", ")
+                    };
+                    return error_response(
+                        404,
+                        "Partial Not Found",
+                        &format!(
+                            "Partial '{}' not found in {}\nAvailable partials: {}",
+                            partial_name, route, available_str
+                        ),
+                    );
+                }
+            }
+        }
+    }
+
     // Check if this is a partial request OR if the page has no Page component
     let is_partial_file = renderer.is_partial(&page_template.content);
     let wants_partial = request_context.wants_partial();
@@ -362,6 +390,31 @@ async fn render_route_direct(state: &AppState, route: &str, request_context: Req
             "form": request_context.form.as_map(),
         });
         return Json(response_data).into_response();
+    }
+
+    // Check for named partial request: ?partial=Name
+    if let Some(partial_name) = request_context.query.get("partial") {
+        if partial_name != "true" {
+            match renderer.render_named_partial(&page_template.content, partial_name) {
+                Ok(html) => return Html(html).into_response(),
+                Err(_) => {
+                    let available = renderer.list_partials(&page_template.content);
+                    let available_str = if available.is_empty() {
+                        "none".to_string()
+                    } else {
+                        available.join(", ")
+                    };
+                    return error_response(
+                        404,
+                        "Partial Not Found",
+                        &format!(
+                            "Partial '{}' not found in {}\nAvailable partials: {}",
+                            partial_name, route, available_str
+                        ),
+                    );
+                }
+            }
+        }
     }
 
     // Check if this is a partial request OR if the page has no Page component

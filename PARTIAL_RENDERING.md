@@ -83,6 +83,149 @@ cmp Page(props: &PageProps<()>) {
 - `{htmx_target}` - The target element ID (from `hx-target`)
 - `{htmx_trigger}` - The triggering element (from `hx-trigger`)
 
+## Named Partials (Multiple Partials in One File)
+
+For better organization, RHTML supports **named partials** - multiple partials defined in a single file and accessed via `?partial=Name`.
+
+### Why Named Partials?
+
+**Problem with File-Based Partials:**
+```
+pages/
+  users/
+    partials/
+      stats.rhtml
+      active-users.rhtml
+      recent-activity.rhtml
+    index.rhtml
+```
+Too many files, domain logic scattered!
+
+**Solution with Named Partials:**
+```
+pages/
+  users.rhtml  ← All user-related partials in ONE file!
+```
+
+### Defining Named Partials
+
+```rhtml
+<!-- pages/users.rhtml -->
+
+// Named partial: Stats
+// Access: /users?partial=Stats
+partial Stats(props: &PartialProps<()>) {
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4">User Statistics</h2>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-blue-50 rounded">
+                <div class="text-3xl font-bold text-blue-600">1,234</div>
+                <div class="text-sm text-gray-600">Total Users</div>
+            </div>
+        </div>
+    </div>
+}
+
+// Named partial: ActiveUsers
+// Access: /users?partial=ActiveUsers
+partial ActiveUsers(props: &PartialProps<()>) {
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4">Active Users</h2>
+        <div class="space-y-3">
+            <div class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded">
+                <div class="font-semibold">John Doe</div>
+                <span class="ml-auto text-xs bg-green-100 text-green-800 rounded px-2 py-1">
+                    Online
+                </span>
+            </div>
+        </div>
+    </div>
+}
+
+// Optional: Full page component
+cmp Page(props: &PageProps<()>) {
+    <div class="container mx-auto p-8">
+        <h1 class="text-4xl font-bold mb-8">User Dashboard</h1>
+
+        <!-- Load partials dynamically with HTMX -->
+        <div id="stats-section">
+            <button
+                hx-get="/users?partial=Stats"
+                hx-target="#stats-section"
+                hx-swap="innerHTML"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Load User Stats
+            </button>
+        </div>
+
+        <div id="active-users-section">
+            <button
+                hx-get="/users?partial=ActiveUsers"
+                hx-target="#active-users-section"
+                hx-swap="innerHTML"
+                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Load Active Users
+            </button>
+        </div>
+    </div>
+}
+```
+
+### Accessing Named Partials
+
+**Direct URL Access:**
+```bash
+# Full page (if Page component exists)
+curl http://localhost:3000/users
+
+# Just the Stats partial
+curl http://localhost:3000/users?partial=Stats
+
+# Just the ActiveUsers partial
+curl http://localhost:3000/users?partial=ActiveUsers
+```
+
+**With HTMX:**
+```html
+<button
+    hx-get="/users?partial=Stats"
+    hx-target="#container"
+    hx-swap="innerHTML">
+    Load Stats
+</button>
+```
+
+### Error Handling
+
+If you request a partial that doesn't exist, RHTML shows a helpful error:
+
+```bash
+curl http://localhost:3000/users?partial=Invalid
+```
+
+**Response:**
+```
+404 Partial Not Found
+
+Partial 'Invalid' not found in /users
+Available partials: Stats, ActiveUsers, RecentActivity
+```
+
+### When to Use Named Partials vs File-Based
+
+**Use Named Partials When:**
+- ✅ Multiple partials belong to the same domain (e.g., user-related fragments)
+- ✅ Partials share context and data
+- ✅ You want better organization and less file clutter
+- ✅ Building a dashboard with multiple dynamic sections
+
+**Use File-Based Partials When:**
+- ✅ Partials are truly independent (e.g., generic components)
+- ✅ Partials are reused across different pages
+- ✅ Keeping partials in separate files improves clarity
+
+**Best Practice:** Use named partials for domain-specific fragments, file-based partials for reusable components.
+
 ## Complete Example
 
 ### 1. Create a Partial File
