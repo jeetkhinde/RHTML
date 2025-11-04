@@ -2,7 +2,7 @@
 // Purpose: Loads RHTML templates from the pages/ directory
 
 use crate::parser::css::{CssParser, ScopedCss};
-use crate::router::{Route, Router};
+use rhtml_router::{Route, Router};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fs;
@@ -27,7 +27,7 @@ pub struct TemplateLoader {
 }
 
 impl TemplateLoader {
-    /// Create a new template loader
+    /// Create a new template loader with default directories and case-sensitive routing
     pub fn new(pages_dir: impl Into<PathBuf>) -> Self {
         Self {
             pages_dir: pages_dir.into(),
@@ -38,7 +38,22 @@ impl TemplateLoader {
         }
     }
 
-    /// Create a new template loader with case-insensitive routing
+    /// Create a new template loader with custom directories and routing options
+    pub fn with_config(
+        pages_dir: impl Into<PathBuf>,
+        components_dir: impl Into<PathBuf>,
+        case_insensitive: bool
+    ) -> Self {
+        Self {
+            pages_dir: pages_dir.into(),
+            components_dir: components_dir.into(),
+            templates: HashMap::new(),
+            components: HashMap::new(),
+            router: Router::with_case_insensitive(case_insensitive),
+        }
+    }
+
+    /// Create a new template loader with case-insensitive routing (legacy)
     pub fn with_case_insensitive(pages_dir: impl Into<PathBuf>, case_insensitive: bool) -> Self {
         Self {
             pages_dir: pages_dir.into(),

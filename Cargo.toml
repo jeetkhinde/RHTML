@@ -8,6 +8,7 @@ name = "rhtml_app"
 path = "src/main.rs"
 
 [dependencies]
+rhtml-router = { path = "rhtml-router" }
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
