@@ -1,9 +1,9 @@
 // File: src/template_loader.rs
 // Purpose: Loads RHTML templates from the pages/ directory
 
-use crate::parser::css::{CssParser, ScopedCss};
-use rhtml_router::{Route, Router};
 use anyhow::{Context, Result};
+use rhtml_parser::{CssParser, ScopedCss};
+use rhtml_router::{Route, Router};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -42,7 +42,7 @@ impl TemplateLoader {
     pub fn with_config(
         pages_dir: impl Into<PathBuf>,
         components_dir: impl Into<PathBuf>,
-        case_insensitive: bool
+        case_insensitive: bool,
     ) -> Self {
         Self {
             pages_dir: pages_dir.into(),
@@ -123,7 +123,11 @@ impl TemplateLoader {
 
         self.components.insert(name.clone(), template);
 
-        println!("🧩 Loaded component: {} -> {:?}", name, path.file_name().unwrap());
+        println!(
+            "🧩 Loaded component: {} -> {:?}",
+            name,
+            path.file_name().unwrap()
+        );
 
         Ok(())
     }
@@ -158,7 +162,7 @@ impl TemplateLoader {
         // Create a Route for the router
         let route_obj = Route::from_path(
             path.to_str().unwrap_or(""),
-            self.pages_dir.to_str().unwrap_or("pages")
+            self.pages_dir.to_str().unwrap_or("pages"),
         );
 
         // Process CSS
@@ -171,14 +175,20 @@ impl TemplateLoader {
         };
 
         // For layouts, only store with the old-style key (e.g., "/_layout", "/users/_layout")
+        // For error pages, only store with the old-style key (e.g., "/_error", "/users/_error")
         // For pages, store with both pattern key and old-style key
         if route_obj.is_layout {
             // Layouts: only use old-style key to avoid collision with pages
             let old_route = self.path_to_route(path);
             self.templates.insert(old_route, template);
+        } else if route_obj.is_error_page {
+            // Error pages: only use old-style key to avoid collision with pages
+            let old_route = self.path_to_route(path);
+            self.templates.insert(old_route, template);
         } else {
             // Pages: store with pattern key
-            self.templates.insert(route_obj.pattern.clone(), template.clone());
+            self.templates
+                .insert(route_obj.pattern.clone(), template.clone());
 
             // Also store using old key format for backward compatibility
             let old_route = self.path_to_route(path);
@@ -209,9 +219,23 @@ impl TemplateLoader {
             .to_string_lossy()
             .replace('\\', "/");
 
-        // Convert "index" to "/"
-        if route == "index" || route.is_empty() {
+        // Handle "_error" files specially - keep the _error suffix
+        if route == "_error" {
+            "/_error".to_string()
+        } else if route.ends_with("/_error") {
+            route
+        }
+        // Handle "_layout" files specially - keep the _layout suffix
+        else if route == "_layout" {
+            "/_layout".to_string()
+        } else if route.ends_with("/_layout") {
+            route
+        }
+        // Convert "index" to "/" and "users/index" to "/users"
+        else if route == "index" || route.is_empty() {
             "/".to_string()
+        } else if route.ends_with("/index") {
+            route[..route.len() - 6].to_string() // Remove "/index"
         } else if route.starts_with('/') {
             route
         } else {
@@ -290,7 +314,9 @@ impl TemplateLoader {
 
     /// Reload a specific template file
     pub fn reload_template(&mut self, path: &Path) -> Result<()> {
-        if path.to_str().unwrap_or("").contains("/components/") || path.to_str().unwrap_or("").contains("\\components\\") {
+        if path.to_str().unwrap_or("").contains("/components/")
+            || path.to_str().unwrap_or("").contains("\\components\\")
+        {
             self.reload_component(path)?;
         } else {
             // Convert absolute path to relative if needed
@@ -305,7 +331,7 @@ impl TemplateLoader {
             // Remove old template
             let route_obj = Route::from_path(
                 relative_path.to_str().unwrap_or(""),
-                self.pages_dir.to_str().unwrap_or("pages")
+                self.pages_dir.to_str().unwrap_or("pages"),
             );
             self.templates.remove(&route_obj.pattern);
 
