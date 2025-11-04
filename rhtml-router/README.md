@@ -35,6 +35,8 @@ cargo add rhtml-router
 
 ## Quick Start
 
+### Basic Usage (Hardcoded Paths)
+
 ```rust
 use rhtml_router::{Router, Route};
 
@@ -56,6 +58,76 @@ fn main() {
         println!("User ID: {}", route_match.params["id"]);
     }
 }
+```
+
+### With Configuration (Framework-Agnostic)
+
+The router is framework-agnostic - you can use any configuration system (TOML, YAML, JSON, env vars, etc.):
+
+```rust
+use rhtml_router::{Router, Route};
+
+fn main() {
+    let mut router = Router::new();
+
+    // Read configuration from YOUR system
+    // (TOML, YAML, JSON, environment variables, hardcoded, etc.)
+    let pages_dir = read_config().pages_dir; // ← You provide this
+
+    // Router respects your configuration
+    router.add_route(Route::from_path("app/index.rhtml", &pages_dir));
+    router.add_route(Route::from_path("app/users/[id].rhtml", &pages_dir));
+
+    router.sort_routes();
+
+    // Routes are generated relative to configured directory
+    let route = router.match_route("/users/123").unwrap();
+    assert_eq!(route.route.pattern, "/users/:id");
+}
+```
+
+### Example: Using with TOML Configuration
+
+```rust
+use rhtml_router::{Router, Route};
+use std::fs;
+
+// Your config structure (can be anything)
+#[derive(Deserialize)]
+struct Config {
+    routing: RoutingConfig,
+}
+
+#[derive(Deserialize)]
+struct RoutingConfig {
+    pages_dir: String,      // e.g., "pages", "app", "routes"
+    case_insensitive: bool,
+}
+
+fn main() {
+    // Load config from your TOML file
+    let config_str = fs::read_to_string("config.toml").unwrap();
+    let config: Config = toml::from_str(&config_str).unwrap();
+
+    // Create router with configured options
+    let mut router = Router::with_case_insensitive(config.routing.case_insensitive);
+
+    // Use configured directory
+    let pages_dir = &config.routing.pages_dir;
+    router.add_route(Route::from_path(
+        &format!("{}/index.rhtml", pages_dir),
+        pages_dir
+    ));
+
+    router.sort_routes();
+}
+```
+
+**Your `config.toml`:**
+```toml
+[routing]
+pages_dir = "app"          # Use Next.js-style directory
+case_insensitive = true    # Case-insensitive URL matching
 ```
 
 ## File Naming Convention
@@ -146,6 +218,53 @@ assert!(router.match_route("/About").is_some());
 assert!(router.match_route("/ABOUT").is_some());
 ```
 
+## Architecture: Configuration Flow
+
+This crate is **framework-agnostic** and designed to be used by web frameworks or applications.
+
+```
+┌──────────────────────────────────────────────────┐
+│  Your Application (Axum, Actix, RHTML, etc.)    │
+│                                                   │
+│  ┌─────────────┐                                 │
+│  │ config.toml │  ← You choose the format        │
+│  │ config.yaml │                                  │
+│  │ env vars    │                                  │
+│  └──────┬──────┘                                  │
+│         │                                         │
+│         ↓                                         │
+│  Your Config Loader                              │
+│  (toml, serde_yaml, env, hardcoded, etc.)       │
+│         │                                         │
+│         ↓                                         │
+│  pages_dir = "app"  ← You extract the values     │
+│  case_insensitive = true                         │
+│         │                                         │
+│         ↓                                         │
+│  router.add_route(                               │
+│    Route::from_path(path, &pages_dir)  ← Pass it│
+│  )                                                │
+│                                                   │
+└─────────────────┬─────────────────────────────────┘
+                  │
+                  ↓
+        ┌──────────────────────────┐
+        │   rhtml-router crate     │
+        │                          │
+        │  - Receives parameters   │
+        │  - NO config reading     │
+        │  - NO TOML/YAML deps     │
+        │  - Pure routing logic    │
+        └──────────────────────────┘
+```
+
+**Key Points:**
+- ✅ Router does NOT read config files (stays framework-agnostic)
+- ✅ YOU read config using your preferred system
+- ✅ YOU pass configured values to the router
+- ✅ Router respects your configuration
+- ✅ Works with: TOML, YAML, JSON, env vars, hardcoded values, databases, etc.
+
 ### Integration with Axum
 
 ```rust
@@ -157,7 +276,11 @@ async fn handle_route(
     Path(path): Path<String>,
 ) -> String {
     let mut router = Router::new();
-    router.add_route(Route::from_path("pages/users/[id].rhtml", "pages"));
+
+    // You decide where pages_dir comes from
+    let pages_dir = "pages"; // Could be from config, env var, etc.
+
+    router.add_route(Route::from_path("pages/users/[id].rhtml", pages_dir));
     router.sort_routes();
 
     if let Some(route_match) = router.match_route(&format!("/{}", path)) {
@@ -178,6 +301,27 @@ async fn main() {
         .unwrap();
 }
 ```
+
+### Integration with RHTML Framework
+
+If you're using the RHTML framework (which uses this router):
+
+```rust
+use rhtml_app::Config;  // RHTML's config system
+use rhtml_router::{Router, Route};
+
+// RHTML reads rhtml.toml for you
+let config = Config::load("rhtml.toml")?;
+
+// Pass configured values to router
+let mut router = Router::with_case_insensitive(config.routing.case_insensitive);
+router.add_route(Route::from_path(
+    &format!("{}/index.rhtml", config.routing.pages_dir),
+    &config.routing.pages_dir
+));
+```
+
+See [RHTML's configuration guide](https://github.com/jeetkhinde/RHTML/blob/main/CONFIGURATION.md) for details.
 
 ## Route Priority
 
