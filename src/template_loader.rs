@@ -2,7 +2,7 @@
 // Purpose: Loads RHTML templates from the pages/ directory
 
 use crate::parser::css::{CssParser, ScopedCss};
-use crate::router::{Route, Router};
+use rhtml_router::{Route, Router};
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fs;
