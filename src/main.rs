@@ -36,6 +36,8 @@ async fn main() {
 
     println!("⚙️  Configuration:");
     println!("   - Port: {}", config.server.port);
+    println!("   - Pages directory: {}", config.routing.pages_dir);
+    println!("   - Components directory: {}", config.routing.components_dir);
     println!("   - Case-insensitive routing: {}", config.routing.case_insensitive);
 
     // Check if hot reload is enabled (default: true for development)
@@ -43,8 +45,12 @@ async fn main() {
         .map(|v| v.parse::<bool>().unwrap_or(config.dev.hot_reload))
         .unwrap_or(config.dev.hot_reload);
 
-    // Load all templates with case-insensitive routing from config
-    let mut loader = TemplateLoader::with_case_insensitive("pages", config.routing.case_insensitive);
+    // Load all templates with configuration from rhtml.toml
+    let mut loader = TemplateLoader::with_config(
+        &config.routing.pages_dir,
+        &config.routing.components_dir,
+        config.routing.case_insensitive
+    );
     match loader.load_all() {
         Ok(_) => {
             println!("✅ Loaded {} templates", loader.count());

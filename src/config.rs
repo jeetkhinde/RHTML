@@ -54,8 +54,16 @@ pub struct ServerConfig {
 /// Routing configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoutingConfig {
-    /// Whether routes are case-insensitive (default: false for backward compatibility)
-    #[serde(default = "default_false")]
+    /// Directory containing page files (default: "pages")
+    #[serde(default = "default_pages_dir")]
+    pub pages_dir: String,
+
+    /// Directory containing component files (default: "components")
+    #[serde(default = "default_components_dir")]
+    pub components_dir: String,
+
+    /// Whether routes are case-insensitive (default: true)
+    #[serde(default = "default_true")]
     pub case_insensitive: bool,
 
     /// Base path for all routes (e.g., "/app")
@@ -128,6 +136,14 @@ fn default_static_dir() -> String {
     "static".to_string()
 }
 
+fn default_pages_dir() -> String {
+    "pages".to_string()
+}
+
+fn default_components_dir() -> String {
+    "components".to_string()
+}
+
 fn default_watch_paths() -> Vec<String> {
     vec![
         "pages".to_string(),
@@ -180,7 +196,9 @@ impl Default for ServerConfig {
 impl Default for RoutingConfig {
     fn default() -> Self {
         Self {
-            case_insensitive: false, // Default to case-sensitive for backward compatibility
+            pages_dir: default_pages_dir(),
+            components_dir: default_components_dir(),
+            case_insensitive: true, // Default to case-insensitive (most user-friendly)
             base_path: None,
             trailing_slash: false,
         }
@@ -249,12 +267,30 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.server.port, 3000);
         assert_eq!(config.server.host, "127.0.0.1");
-        assert_eq!(config.routing.case_insensitive, false);
+        assert_eq!(config.routing.case_insensitive, true); // Now defaults to true
+        assert_eq!(config.routing.pages_dir, "pages");
+        assert_eq!(config.routing.components_dir, "components");
     }
 
     #[test]
     fn test_empty_config() {
         let config = toml::from_str::<Config>("").unwrap_or_default();
         assert_eq!(config.server.port, 3000);
+        assert_eq!(config.routing.pages_dir, "pages");
+        assert_eq!(config.routing.components_dir, "components");
+    }
+
+    #[test]
+    fn test_custom_directories() {
+        let toml = r#"
+            [routing]
+            pages_dir = "app"
+            components_dir = "ui"
+            case_insensitive = false
+        "#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.routing.pages_dir, "app");
+        assert_eq!(config.routing.components_dir, "ui");
+        assert_eq!(config.routing.case_insensitive, false);
     }
 }
