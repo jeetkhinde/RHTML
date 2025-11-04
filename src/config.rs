@@ -1,13 +1,13 @@
 // File: src/config.rs
 // Purpose: Configuration parsing from rhtml.toml
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use anyhow::{Context, Result};
 
 /// Application configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub project: ProjectConfig,
@@ -161,18 +161,6 @@ fn default_false() -> bool {
 }
 
 // Default implementations
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            project: ProjectConfig::default(),
-            server: ServerConfig::default(),
-            routing: RoutingConfig::default(),
-            build: BuildConfig::default(),
-            dev: DevConfig::default(),
-        }
-    }
-}
-
 impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
@@ -267,7 +255,7 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.server.port, 3000);
         assert_eq!(config.server.host, "127.0.0.1");
-        assert_eq!(config.routing.case_insensitive, true); // Now defaults to true
+        assert!(config.routing.case_insensitive); // Now defaults to true
         assert_eq!(config.routing.pages_dir, "pages");
         assert_eq!(config.routing.components_dir, "components");
     }
@@ -291,6 +279,6 @@ mod tests {
         let config: Config = toml::from_str(toml).unwrap();
         assert_eq!(config.routing.pages_dir, "app");
         assert_eq!(config.routing.components_dir, "ui");
-        assert_eq!(config.routing.case_insensitive, false);
+        assert!(!config.routing.case_insensitive);
     }
 }

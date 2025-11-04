@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 /// Simple expression evaluator for conditions and interpolations
 pub struct ExpressionEvaluator {
-    pub(crate) variables: HashMap<String, Value>,
+    pub variables: HashMap<String, Value>,
 }
 
 /// Supported value types in templates

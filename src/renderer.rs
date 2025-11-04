@@ -1,10 +1,10 @@
 // File: src/renderer.rs
 // Purpose: Render RHTML templates with directive support
 
-use crate::parser::{DirectiveParser, ExpressionEvaluator};
 use crate::template_loader::TemplateLoader;
 use anyhow::Result;
 use regex::Regex;
+use rhtml_parser::{DirectiveParser, ExpressionEvaluator, Value};
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -43,7 +43,7 @@ impl Renderer {
     }
 
     /// Set a variable for expression evaluation
-    pub fn set_var(&mut self, name: impl Into<String>, value: crate::parser::expression::Value) {
+    pub fn set_var(&mut self, name: impl Into<String>, value: Value) {
         self.evaluator.set(name, value);
     }
 
@@ -398,7 +398,7 @@ impl Renderer {
 
         // Set props as variables in component renderer
         for (key, value) in props {
-            component_renderer.evaluator.set(&key, crate::parser::expression::Value::String(value));
+            component_renderer.evaluator.set(&key, Value::String(value));
         }
 
         // Render the component
@@ -406,7 +406,9 @@ impl Renderer {
         let interpolated = component_renderer.process_interpolations(&processed);
 
         // Add scope attribute to the component HTML
-        let scope_name = component.scoped_css.as_ref()
+        let scope_name = component
+            .scoped_css
+            .as_ref()
             .map(|css| css.scope_name.clone())
             .unwrap_or(name.clone());
 
@@ -472,7 +474,8 @@ impl Renderer {
 
         // Get content between opening and closing tags
         let content_start = tag_end + 1;
-        let content_end = element.rfind(&format!("</{}", self.get_tag_name(opening_tag)))
+        let content_end = element
+            .rfind(&format!("</{}", self.get_tag_name(opening_tag)))
             .unwrap_or(element.len());
         let content = &element[content_start..content_end];
 
@@ -500,7 +503,9 @@ impl Renderer {
 
                     // Check if this when pattern matches
                     if let Some(pattern) = DirectiveParser::extract_when_pattern(&tag_buffer) {
-                        if self.evaluator.eval_string(&pattern) == match_value && matched_element.is_none() {
+                        if self.evaluator.eval_string(&pattern) == match_value
+                            && matched_element.is_none()
+                        {
                             matched_element = Some(when_element);
                         }
                     }
@@ -603,7 +608,8 @@ impl Renderer {
         let opening_tag = &element[..=tag_end];
 
         // Extract loop information
-        let (item_var, index_var, collection) = match DirectiveParser::extract_for_loop(opening_tag) {
+        let (item_var, index_var, collection) = match DirectiveParser::extract_for_loop(opening_tag)
+        {
             Some(info) => info,
             None => return String::new(),
         };
@@ -619,7 +625,8 @@ impl Renderer {
 
         // Get content between opening and closing tags
         let content_start = tag_end + 1;
-        let content_end = element.rfind(&format!("</{}", self.get_tag_name(opening_tag)))
+        let content_end = element
+            .rfind(&format!("</{}", self.get_tag_name(opening_tag)))
             .unwrap_or(element.len());
         let content = &element[content_start..content_end];
 
@@ -637,7 +644,9 @@ impl Renderer {
             // Set loop variables
             item_renderer.evaluator.set(&item_var, item.clone());
             if let Some(idx_var) = &index_var {
-                item_renderer.evaluator.set(idx_var, crate::parser::expression::Value::Number(index as f64));
+                item_renderer
+                    .evaluator
+                    .set(idx_var, Value::Number(index as f64));
             }
 
             // Process the content
@@ -817,7 +826,11 @@ impl Renderer {
         re.replace(content, "").to_string()
     }
 
-    pub fn render_with_layout(&mut self, layout_content: &str, page_content: &str) -> Result<String> {
+    pub fn render_with_layout(
+        &mut self,
+        layout_content: &str,
+        page_content: &str,
+    ) -> Result<String> {
         // Strip @layout directive if present (shouldn't normally be here, but just in case)
         let clean_page_content = self.strip_layout_directive(page_content);
 
@@ -866,7 +879,9 @@ impl Renderer {
         }
 
         // Combine all collected CSS
-        let combined_css = self.collected_css.iter()
+        let combined_css = self
+            .collected_css
+            .iter()
             .map(|s| s.as_str())
             .collect::<Vec<_>>()
             .join("\n\n");
@@ -878,7 +893,7 @@ impl Renderer {
         if let Some(head_close) = html.find("</head>") {
             let mut result = html.to_string();
             result.insert_str(head_close, &style_tag);
-            result.insert_str(head_close, "\n");
+            result.insert(head_close, '\n');
             return result;
         }
 
@@ -886,7 +901,7 @@ impl Renderer {
         if let Some(head_open) = html.find("<head>") {
             let insert_pos = head_open + 6; // Length of "<head>"
             let mut result = html.to_string();
-            result.insert_str(insert_pos, "\n");
+            result.insert(insert_pos, '\n');
             result.insert_str(insert_pos + 1, &style_tag);
             return result;
         }

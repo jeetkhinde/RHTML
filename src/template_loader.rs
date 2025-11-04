@@ -197,9 +197,19 @@ impl TemplateLoader {
             }
         }
 
+        // Determine what key this will be stored with for clarity
+        let storage_key = if route_obj.is_layout {
+            self.path_to_route(path)
+        } else if route_obj.is_error_page {
+            self.path_to_route(path)
+        } else {
+            route_obj.pattern.clone()
+        };
+
         println!(
-            "📄 Loaded template: {} -> {:?} (priority: {})",
+            "📄 Loaded template: {} (stored as: {}) -> {:?} (priority: {})",
             route_obj.pattern,
+            storage_key,
             path.file_name().unwrap(),
             route_obj.priority
         );
@@ -223,19 +233,36 @@ impl TemplateLoader {
         if route == "_error" {
             "/_error".to_string()
         } else if route.ends_with("/_error") {
-            route
+            // Ensure leading slash
+            if route.starts_with('/') {
+                route
+            } else {
+                format!("/{}", route)
+            }
         }
         // Handle "_layout" files specially - keep the _layout suffix
         else if route == "_layout" {
             "/_layout".to_string()
         } else if route.ends_with("/_layout") {
-            route
+            // Ensure leading slash
+            if route.starts_with('/') {
+                route
+            } else {
+                format!("/{}", route)
+            }
         }
         // Convert "index" to "/" and "users/index" to "/users"
         else if route == "index" || route.is_empty() {
             "/".to_string()
         } else if route.ends_with("/index") {
-            route[..route.len() - 6].to_string() // Remove "/index"
+            let without_index = route[..route.len() - 6].to_string(); // Remove "/index"
+            if without_index.is_empty() {
+                "/".to_string()
+            } else if without_index.starts_with('/') {
+                without_index
+            } else {
+                format!("/{}", without_index)
+            }
         } else if route.starts_with('/') {
             route
         } else {

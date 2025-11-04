@@ -1,18 +1,21 @@
 use axum::{
+    body::Bytes,
     extract::{Query as AxumQuery, State},
+    http::{HeaderMap, Method},
     response::{Html, IntoResponse, Json, Response},
     routing::get,
     Router,
-    http::{Method, HeaderMap},
-    body::Bytes,
 };
-use rhtml_app::{Renderer, TemplateLoader, RequestContext, QueryParams, FormData, Config, LayoutDirective};
-use serde_json::Value as JsonValue;
 use rhtml_app::hot_reload::{create_watcher, ChangeType};
+use rhtml_app::{
+    Config, FormData, LayoutDirective, QueryParams, Renderer, RequestContext, TemplateLoader,
+};
+use rhtml_parser::Value;
+use serde_json::Value as JsonValue;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_livereload::LiveReloadLayer;
-use tracing::{info, error};
+use tracing::{error, info};
 
 /// Application state shared across handlers
 #[derive(Clone)]
@@ -37,8 +40,14 @@ async fn main() {
     println!("⚙️  Configuration:");
     println!("   - Port: {}", config.server.port);
     println!("   - Pages directory: {}", config.routing.pages_dir);
-    println!("   - Components directory: {}", config.routing.components_dir);
-    println!("   - Case-insensitive routing: {}", config.routing.case_insensitive);
+    println!(
+        "   - Components directory: {}",
+        config.routing.components_dir
+    );
+    println!(
+        "   - Case-insensitive routing: {}",
+        config.routing.case_insensitive
+    );
 
     // Check if hot reload is enabled (default: true for development)
     let hot_reload_enabled = std::env::var("HOT_RELOAD")
@@ -49,7 +58,7 @@ async fn main() {
     let mut loader = TemplateLoader::with_config(
         &config.routing.pages_dir,
         &config.routing.components_dir,
-        config.routing.case_insensitive
+        config.routing.case_insensitive,
     );
     match loader.load_all() {
         Ok(_) => {
@@ -116,17 +125,19 @@ async fn main() {
 
     // Build router with support for all HTTP methods
     let mut app = Router::new()
-        .route("/",
+        .route(
+            "/",
             get(index_handler)
                 .post(index_handler)
                 .put(index_handler)
-                .delete(index_handler)
+                .delete(index_handler),
         )
-        .route("/*path",
+        .route(
+            "/*path",
             get(template_handler)
                 .post(template_handler)
                 .put(template_handler)
-                .delete(template_handler)
+                .delete(template_handler),
         )
         .with_state(state);
 
@@ -158,7 +169,8 @@ async fn index_handler(
     query: AxumQuery<std::collections::HashMap<String, String>>,
     body: Bytes,
 ) -> Response {
-    let request_context = create_request_context(method, "/".to_string(), query.0, headers, body).await;
+    let request_context =
+        create_request_context(method, "/".to_string(), query.0, headers, body).await;
     render_route(&state, "/", request_context).await
 }
 
@@ -172,7 +184,8 @@ async fn template_handler(
     body: Bytes,
 ) -> Response {
     let route = format!("/{}", path);
-    let request_context = create_request_context(method, route.clone(), query.0, headers, body).await;
+    let request_context =
+        create_request_context(method, route.clone(), query.0, headers, body).await;
     render_route(&state, &route, request_context).await
 }
 
@@ -246,12 +259,14 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
                 "Page Not Found",
                 &format!("Route '{}' not found", route),
                 Some(route),
-            ).await;
+            )
+            .await;
         }
     };
 
     // Try to get template by pattern
-    let page_template = loader.get(&route_match.route.pattern)
+    let page_template = loader
+        .get(&route_match.route.pattern)
         .or_else(|| loader.get(route));
 
     let page_template = match page_template {
@@ -267,8 +282,12 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
 
     // Get the appropriate layout (section-specific or root)
     let layout_template = match loader.get_layout_for_route(&route_match.route.pattern) {
-        Some(t) => t.clone(),
+        Some(t) => {
+            eprintln!("✅ Found layout for pattern: {}", route_match.route.pattern);
+            t.clone()
+        },
         None => {
+            eprintln!("❌ No layout found for pattern: {}", route_match.route.pattern);
             return error_response(
                 500,
                 "Layout Not Found",
@@ -286,7 +305,7 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
 
     // Set route parameters as variables
     for (param_name, param_value) in &route_match.params {
-        renderer.set_var(param_name, rhtml_app::parser::expression::Value::String(param_value.clone()));
+        renderer.set_var(param_name, Value::String(param_value.clone()));
     }
 
     // Set request context data as variables
@@ -370,15 +389,20 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
             let is_partial_file = renderer.is_partial(&page_template.content);
             let wants_partial = request_context.wants_partial();
 
+            eprintln!("📋 Route: {}, is_partial_file: {}, wants_partial: {}", route, is_partial_file, wants_partial);
+
             if is_partial_file || wants_partial {
                 // Render as partial (without layout)
+                eprintln!("🚫 Rendering as partial");
                 match renderer.render_partial(&page_template.content) {
                     Ok(html) => Html(html).into_response(),
                     Err(e) => error_response(500, "Render Error", &format!("{}", e)),
                 }
             } else {
                 // Render the page with default layout (HTML response)
-                match renderer.render_with_layout(&layout_template.content, &page_template.content) {
+                eprintln!("✅ Rendering with layout");
+                match renderer.render_with_layout(&layout_template.content, &page_template.content)
+                {
                     Ok(html) => Html(html).into_response(),
                     Err(e) => error_response(500, "Render Error", &format!("{}", e)),
                 }
@@ -388,7 +412,11 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
 }
 
 /// Render a route directly (fallback for old-style routes)
-async fn render_route_direct(state: &AppState, route: &str, request_context: RequestContext) -> Response {
+async fn render_route_direct(
+    state: &AppState,
+    route: &str,
+    request_context: RequestContext,
+) -> Response {
     let loader = state.template_loader.read().await;
 
     let page_template = match loader.get(route) {
@@ -501,7 +529,8 @@ async fn render_route_direct(state: &AppState, route: &str, request_context: Req
                     Err(e) => error_response(500, "Render Error", &format!("{}", e)),
                 }
             } else {
-                match renderer.render_with_layout(&layout_template.content, &page_template.content) {
+                match renderer.render_with_layout(&layout_template.content, &page_template.content)
+                {
                     Ok(html) => Html(html).into_response(),
                     Err(e) => error_response(500, "Render Error", &format!("{}", e)),
                 }
@@ -512,10 +541,11 @@ async fn render_route_direct(state: &AppState, route: &str, request_context: Req
 
 /// Setup request context data as template variables
 fn setup_request_context(renderer: &mut Renderer, ctx: &RequestContext) {
-    use rhtml_app::parser::expression::Value;
-
     // Set HTTP method
-    renderer.set_var("request_method", Value::String(ctx.method.as_str().to_string()));
+    renderer.set_var(
+        "request_method",
+        Value::String(ctx.method.as_str().to_string()),
+    );
 
     // Set path
     renderer.set_var("request_path", Value::String(ctx.path.clone()));
@@ -529,7 +559,7 @@ fn setup_request_context(renderer: &mut Renderer, ctx: &RequestContext) {
 
     // Also set individual query params
     for (key, value) in ctx.query.as_map() {
-        renderer.set_var(&format!("query_{}", key), Value::String(value.clone()));
+        renderer.set_var(format!("query_{}", key), Value::String(value.clone()));
     }
 
     // Set form data as an object
@@ -541,7 +571,7 @@ fn setup_request_context(renderer: &mut Renderer, ctx: &RequestContext) {
 
     // Also set individual form fields
     for (key, value) in ctx.form.as_map() {
-        renderer.set_var(&format!("form_{}", key), Value::String(value.clone()));
+        renderer.set_var(format!("form_{}", key), Value::String(value.clone()));
     }
 
     // Set cookies as an object
@@ -570,45 +600,59 @@ fn setup_request_context(renderer: &mut Renderer, ctx: &RequestContext) {
 }
 
 /// Setup demo data for specific routes
-fn setup_demo_data(renderer: &mut Renderer, route: &str, _params: &std::collections::HashMap<String, String>) {
-    use rhtml_app::parser::expression::Value;
-
+fn setup_demo_data(
+    renderer: &mut Renderer,
+    route: &str,
+    _params: &std::collections::HashMap<String, String>,
+) {
     if route == "/loops" {
         // Example 1: Fruits array
-        renderer.set_var("fruits", Value::Array(vec![
-            Value::String("Apple".to_string()),
-            Value::String("Banana".to_string()),
-            Value::String("Cherry".to_string()),
-            Value::String("Dragon Fruit".to_string()),
-        ]));
+        renderer.set_var(
+            "fruits",
+            Value::Array(vec![
+                Value::String("Apple".to_string()),
+                Value::String("Banana".to_string()),
+                Value::String("Cherry".to_string()),
+                Value::String("Dragon Fruit".to_string()),
+            ]),
+        );
 
         // Example 2: Colors array
-        renderer.set_var("colors", Value::Array(vec![
-            Value::String("Red".to_string()),
-            Value::String("Green".to_string()),
-            Value::String("Blue".to_string()),
-            Value::String("Yellow".to_string()),
-        ]));
+        renderer.set_var(
+            "colors",
+            Value::Array(vec![
+                Value::String("Red".to_string()),
+                Value::String("Green".to_string()),
+                Value::String("Blue".to_string()),
+                Value::String("Yellow".to_string()),
+            ]),
+        );
 
         // Example 3: Tasks array
-        renderer.set_var("tasks", Value::Array(vec![
-            Value::String("Implement r-for directive".to_string()),
-            Value::String("Create demo page".to_string()),
-            Value::String("Test the feature".to_string()),
-            Value::String("Write documentation".to_string()),
-        ]));
+        renderer.set_var(
+            "tasks",
+            Value::Array(vec![
+                Value::String("Implement r-for directive".to_string()),
+                Value::String("Create demo page".to_string()),
+                Value::String("Test the feature".to_string()),
+                Value::String("Write documentation".to_string()),
+            ]),
+        );
 
         // Example 4: Numbers array
-        renderer.set_var("numbers", Value::Array(vec![
-            Value::Number(1.0),
-            Value::Number(2.0),
-            Value::Number(3.0),
-            Value::Number(4.0),
-            Value::Number(5.0),
-            Value::Number(6.0),
-            Value::Number(7.0),
-            Value::Number(8.0),
-        ]));
+        renderer.set_var(
+            "numbers",
+            Value::Array(vec![
+                Value::Number(1.0),
+                Value::Number(2.0),
+                Value::Number(3.0),
+                Value::Number(4.0),
+                Value::Number(5.0),
+                Value::Number(6.0),
+                Value::Number(7.0),
+                Value::Number(8.0),
+            ]),
+        );
     } else if route == "/match" {
         // Example 1: User role
         renderer.set_var("user_role", Value::String("admin".to_string()));
@@ -636,7 +680,8 @@ async fn custom_error_response(
 
     // Try to get custom error page for the route
     let error_template = if let Some(pattern) = route_pattern {
-        loader.get_error_page_for_route(pattern)
+        loader
+            .get_error_page_for_route(pattern)
             .or_else(|| loader.get_error_page())
     } else {
         loader.get_error_page()
@@ -651,9 +696,9 @@ async fn custom_error_response(
         let mut renderer = Renderer::with_loader(loader_arc);
 
         // Set error variables
-        renderer.set_var("status", rhtml_app::parser::expression::Value::Number(status as f64));
-        renderer.set_var("title", rhtml_app::parser::expression::Value::String(title.to_string()));
-        renderer.set_var("message", rhtml_app::parser::expression::Value::String(message.to_string()));
+        renderer.set_var("status", Value::Number(status as f64));
+        renderer.set_var("title", Value::String(title.to_string()));
+        renderer.set_var("message", Value::String(message.to_string()));
 
         // Render error page (without layout, as error pages should be standalone)
         match renderer.render_partial(&error_page_clone.content) {
@@ -694,7 +739,7 @@ fn error_response(status: u16, title: &str, message: &str) -> Response {
                     <h2 class="text-2xl font-semibold text-gray-800 mb-2">{title}</h2>
                     <p class="text-gray-600">{message}</p>
                     <a href="/" class="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        Go Home
+                        Go Home.
                     </a>
                 </div>
             </div>
