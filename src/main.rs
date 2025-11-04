@@ -282,12 +282,8 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
 
     // Get the appropriate layout (section-specific or root)
     let layout_template = match loader.get_layout_for_route(&route_match.route.pattern) {
-        Some(t) => {
-            eprintln!("✅ Found layout for pattern: {}", route_match.route.pattern);
-            t.clone()
-        },
+        Some(t) => t.clone(),
         None => {
-            eprintln!("❌ No layout found for pattern: {}", route_match.route.pattern);
             return error_response(
                 500,
                 "Layout Not Found",
@@ -389,18 +385,14 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
             let is_partial_file = renderer.is_partial(&page_template.content);
             let wants_partial = request_context.wants_partial();
 
-            eprintln!("📋 Route: {}, is_partial_file: {}, wants_partial: {}", route, is_partial_file, wants_partial);
-
             if is_partial_file || wants_partial {
                 // Render as partial (without layout)
-                eprintln!("🚫 Rendering as partial");
                 match renderer.render_partial(&page_template.content) {
                     Ok(html) => Html(html).into_response(),
                     Err(e) => error_response(500, "Render Error", &format!("{}", e)),
                 }
             } else {
                 // Render the page with default layout (HTML response)
-                eprintln!("✅ Rendering with layout");
                 match renderer.render_with_layout(&layout_template.content, &page_template.content)
                 {
                     Ok(html) => Html(html).into_response(),
