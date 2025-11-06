@@ -1,60 +1,43 @@
+@layout _layout
+
 slots {
-  title: "Users List - RHTML",
-  footer: "File-based Routing Demo - Feature #7"
+  title: "Users - RHTML",
+  footer: "Nested Layout Demo"
 }
 
 cmp Page(props: &PageProps<()>) {
   <div class="container">
-    <h1 class="page-title">
-      Users Directory 👥
-    </h1>
+    <h1 class="page-title">Users Directory 👥</h1>
+    <p class="subtitle">Browse all users or create a new one</p>
 
-    <div class="content-box">
-      <h2 class="section-title">All Users</h2>
-      <p class="description">
-        This page demonstrates file-based routing. It's located at <code>pages/users/index.rhtml</code>
-        and uses a section-specific layout from <code>pages/users/_layout.rhtml</code>.
-      </p>
+    <div class="users-grid">
+      <a href="/users/1" class="user-card">
+        <div class="user-avatar">👤</div>
+        <h3>John Doe</h3>
+        <p class="user-role">Admin</p>
+        <span class="view-link">View Profile →</span>
+      </a>
 
-      <div class="users-grid">
-        <a href="/users/1" class="user-card">
-          <div class="user-avatar">👤</div>
-          <h3>John Doe</h3>
-          <p class="user-role">Admin</p>
-          <span class="view-link">View Profile →</span>
-        </a>
+      <a href="/users/2" class="user-card">
+        <div class="user-avatar">👩</div>
+        <h3>Jane Smith</h3>
+        <p class="user-role">Developer</p>
+        <span class="view-link">View Profile →</span>
+      </a>
 
-        <a href="/users/2" class="user-card">
-          <div class="user-avatar">👩</div>
-          <h3>Jane Smith</h3>
-          <p class="user-role">Developer</p>
-          <span class="view-link">View Profile →</span>
-        </a>
+      <a href="/users/3" class="user-card">
+        <div class="user-avatar">🧑</div>
+        <h3>Bob Johnson</h3>
+        <p class="user-role">Designer</p>
+        <span class="view-link">View Profile →</span>
+      </a>
 
-        <a href="/users/3" class="user-card">
-          <div class="user-avatar">🧑</div>
-          <h3>Bob Johnson</h3>
-          <p class="user-role">Designer</p>
-          <span class="view-link">View Profile →</span>
-        </a>
-
-        <a href="/users/42" class="user-card">
-          <div class="user-avatar">🤖</div>
-          <h3>AI Assistant</h3>
-          <p class="user-role">Bot</p>
-          <span class="view-link">View Profile →</span>
-        </a>
-      </div>
-    </div>
-
-    <div class="info-box">
-      <h3 class="info-title">🎯 Routing Features</h3>
-      <ul class="info-list">
-        <li><strong>Dynamic Routes:</strong> Click any user to see <code>[id].rhtml</code> in action</li>
-        <li><strong>Static Priority:</strong> <code>/users/new</code> takes precedence over <code>/users/:id</code></li>
-        <li><strong>Nested Layouts:</strong> This section uses its own layout</li>
-        <li><strong>Route Parameters:</strong> ID is passed as a variable to the template</li>
-      </ul>
+      <a href="/users/42" class="user-card">
+        <div class="user-avatar">🤖</div>
+        <h3>AI Assistant</h3>
+        <p class="user-role">Bot</p>
+        <span class="view-link">View Profile →</span>
+      </a>
     </div>
   </div>
 }
@@ -73,53 +56,33 @@ css Page {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
   }
 
-  .content-box {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .section-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #1a202c;
-    margin-bottom: 1rem;
-  }
-
-  .description {
+  .subtitle {
+    text-align: center;
     color: #64748b;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-  }
-
-  .description code {
-    background: #f1f5f9;
-    padding: 0.125rem 0.375rem;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.875rem;
-    color: #dc2626;
+    margin-bottom: 3rem;
+    font-size: 1.125rem;
   }
 
   .users-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1.5rem;
+    padding: 1rem 0;
   }
 
   .user-card {
-    background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+    background: white;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 2rem 1.5rem;
     text-align: center;
     text-decoration: none;
     transition: all 0.3s;
-    border: 2px solid transparent;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   .user-card:hover {
@@ -150,49 +113,5 @@ css Page {
     color: #667eea;
     font-size: 0.875rem;
     font-weight: 500;
-  }
-
-  .info-box {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border-left: 4px solid #f59e0b;
-    padding: 1.5rem;
-    border-radius: 8px;
-  }
-
-  .info-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #92400e;
-    margin-bottom: 1rem;
-  }
-
-  .info-list {
-    list-style: none;
-    color: #78350f;
-    line-height: 1.8;
-  }
-
-  .info-list li {
-    padding-left: 1.5rem;
-    position: relative;
-  }
-
-  .info-list li::before {
-    content: "▸";
-    position: absolute;
-    left: 0;
-    color: #f59e0b;
-  }
-
-  .info-list strong {
-    font-weight: 600;
-  }
-
-  .info-list code {
-    background: #fef3c7;
-    padding: 0.125rem 0.375rem;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.875rem;
   }
 }
