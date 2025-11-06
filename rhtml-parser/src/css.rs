@@ -163,9 +163,12 @@ impl CssParser {
 
     /// Process RHTML content and return (content without CSS, scoped CSS)
     pub fn process_template(content: &str) -> (String, Option<ScopedCss>) {
-        if let Some((scope_name, css)) = Self::extract_css(content) {
+        // First, convert function components to cmp syntax
+        let content = crate::function_component::FunctionComponentParser::process_content(content);
+
+        if let Some((scope_name, css)) = Self::extract_css(&content) {
             let scoped_css = Self::scope_css(&scope_name, &css);
-            let content_without_css = Self::remove_css_blocks(content);
+            let content_without_css = Self::remove_css_blocks(&content);
 
             (
                 content_without_css,

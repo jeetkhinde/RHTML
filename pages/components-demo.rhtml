@@ -1,0 +1,161 @@
+slots {
+    title: "Components Demo - Function Syntax",
+}
+
+cmp ComponentsDemoPage {
+    <div class="container">
+        <h1>RHTML Components Demo</h1>
+        <p class="intro">This page demonstrates both classic and new function-based component syntax.</p>
+
+        <section class="demo-section">
+            <h2>StatusBadge Component (Function Syntax)</h2>
+            <p>Function-based component with struct props:</p>
+            <div class="badges-demo">
+                <div r-component="StatusBadge" label="Active" color="green" />
+                <div r-component="StatusBadge" label="Pending" color="yellow" />
+                <div r-component="StatusBadge" label="Error" color="red" />
+                <div r-component="StatusBadge" label="Info" color="blue" />
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>UserCard Component (Function Syntax)</h2>
+            <p>Complex component with conditional rendering:</p>
+            <div class="cards-demo">
+                <div r-component="UserCard"
+                     name="John Doe"
+                     email="john@example.com"
+                     avatar="https://i.pravatar.cc/150?img=1"
+                     status="Active"
+                     role="Administrator"
+                     show_actions="true" />
+
+                <div r-component="UserCard"
+                     name="Jane Smith"
+                     email="jane@example.com"
+                     avatar="https://i.pravatar.cc/150?img=2"
+                     status="Active"
+                     role="Developer"
+                     show_actions="true" />
+
+                <div r-component="UserCard"
+                     name="Bob Johnson"
+                     email="bob@example.com"
+                     avatar="https://i.pravatar.cc/150?img=3"
+                     status="Away"
+                     role="Designer"
+                     show_actions="false" />
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>Classic Badge Component (Original Syntax)</h2>
+            <p>Using the classic cmp syntax for comparison:</p>
+            <div r-component="Badge" text="Classic Badge" />
+        </section>
+
+        <section class="code-section">
+            <h2>Function Syntax Example</h2>
+            <pre><code>// Define props struct
+struct StatusBadgeProps {
+    label: String,
+    color: String,
+}
+
+// Component function with destructured props
+StatusBadge(StatusBadgeProps { label, color }: StatusBadgeProps) {
+    &lt;span class="status-badge status-{color}"&gt;
+        {label}
+    &lt;/span&gt;
+}
+
+// Scoped CSS
+css StatusBadge {
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        ...
+    }
+}</code></pre>
+        </section>
+    </div>
+}
+
+css ComponentsDemoPage {
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .intro {
+        font-size: 1.125rem;
+        color: #6b7280;
+        margin-bottom: 3rem;
+    }
+
+    .demo-section {
+        margin-bottom: 3rem;
+        padding: 2rem;
+        background: #f9fafb;
+        border-radius: 12px;
+    }
+
+    .demo-section h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #111827;
+    }
+
+    .demo-section p {
+        color: #6b7280;
+        margin-bottom: 1rem;
+    }
+
+    .badges-demo {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .cards-demo {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .code-section {
+        margin-top: 3rem;
+        padding: 2rem;
+        background: #1f2937;
+        border-radius: 12px;
+    }
+
+    .code-section h2 {
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    pre {
+        margin: 0;
+        overflow-x: auto;
+    }
+
+    code {
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: #d1d5db;
+    }
+}
