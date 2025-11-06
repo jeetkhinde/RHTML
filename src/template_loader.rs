@@ -14,6 +14,7 @@ pub struct Template {
     pub path: PathBuf,
     pub content: String,
     pub scoped_css: Option<ScopedCss>,
+    pub partials: Vec<String>, // Names of partials defined in this template
 }
 
 /// Template loader that reads and caches RHTML files
@@ -112,21 +113,47 @@ impl TemplateLoader {
             .unwrap_or("")
             .to_string();
 
-        // Process CSS
-        let (content_without_css, scoped_css) = CssParser::process_template(&content);
+        // Process CSS and extract partials info
+        let (content_without_css, scoped_css, partials) = CssParser::process_template(&content);
 
         let template = Template {
             path: path.to_path_buf(),
-            content: content_without_css,
-            scoped_css,
+            content: content_without_css.clone(),
+            scoped_css: scoped_css.clone(),
+            partials: partials.clone(),
         };
 
-        self.components.insert(name.clone(), template);
+        self.components.insert(name.clone(), template.clone());
+
+        // If any components in this file are marked as @partial, also register them as routes
+        for partial_name in &partials {
+            let partial_route = format!("/partials/{}", partial_name.to_lowercase());
+
+            // Create a partial template that can be accessed as a route
+            let partial_template = Template {
+                path: path.to_path_buf(),
+                content: content_without_css.clone(),
+                scoped_css: scoped_css.clone(),
+                partials: vec![partial_name.clone()],
+            };
+
+            self.templates.insert(partial_route.clone(), partial_template);
+
+            println!(
+                "📄 Registered partial route: {} -> {} (from component file)",
+                partial_route, partial_name
+            );
+        }
 
         println!(
-            "🧩 Loaded component: {} -> {:?}",
+            "🧩 Loaded component: {} -> {:?}{}",
             name,
-            path.file_name().unwrap()
+            path.file_name().unwrap(),
+            if !partials.is_empty() {
+                format!(" (with partials: {})", partials.join(", "))
+            } else {
+                String::new()
+            }
         );
 
         Ok(())
@@ -165,13 +192,14 @@ impl TemplateLoader {
             self.pages_dir.to_str().unwrap_or("pages"),
         );
 
-        // Process CSS
-        let (content_without_css, scoped_css) = CssParser::process_template(&content);
+        // Process CSS and extract partials info
+        let (content_without_css, scoped_css, partials) = CssParser::process_template(&content);
 
         let template = Template {
             path: path.to_path_buf(),
             content: content_without_css,
             scoped_css,
+            partials,
         };
 
         // For layouts, only store with the old-style key (e.g., "/_layout", "/users/_layout")
