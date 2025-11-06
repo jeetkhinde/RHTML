@@ -13,10 +13,10 @@ WebPage(props: &PageProps<()>) {
                 <p>You can now use <code>WebPage</code> as a more explicit way to define pages!</p>
                 <p>All of these are equivalent:</p>
                 <ul>
-                    <li><code>WebPage(...) { ... }</code></li>
-                    <li><code>webpage(...) { ... }</code></li>
-                    <li><code>WEBPAGE(...) { ... }</code></li>
-                    <li><code>cmp Page(...) { ... }</code> (original syntax)</li>
+                    <li><code>WebPage(...) &#123; ... &#125;</code></li>
+                    <li><code>webpage(...) &#123; ... &#125;</code></li>
+                    <li><code>WEBPAGE(...) &#123; ... &#125;</code></li>
+                    <li><code>cmp Page(...) &#123; ... &#125;</code> (original syntax)</li>
                 </ul>
                 <p>They all convert to <code>cmp Page</code> internally!</p>
             </div>
@@ -24,17 +24,17 @@ WebPage(props: &PageProps<()>) {
 
         <section class="demo-section">
             <h2>This Page's Source</h2>
-            <pre><code>slots {
+            <pre><code>slots &#123;
     title: "WebPage Syntax Demo",
-}
+&#125;
 
-WebPage(props: &PageProps&lt;()&gt;) {
+WebPage(props: &amp;PageProps&lt;()&gt;) &#123;
     &lt;div class="container"&gt;
         &lt;h1 class="page-title"&gt;WebPage Syntax Demo&lt;/h1&gt;
         &lt;p class="subtitle"&gt;Case-insensitive!&lt;/p&gt;
         ...
     &lt;/div&gt;
-}</code></pre>
+&#125;</code></pre>
         </section>
 
         <section class="demo-section">
