@@ -47,6 +47,13 @@ impl Renderer {
         self.evaluator.set(name, value);
     }
 
+    /// Collect CSS from a template's scoped CSS
+    pub fn collect_template_css(&mut self, scoped_css: &Option<rhtml_parser::ScopedCss>) {
+        if let Some(css) = scoped_css {
+            self.collected_css.insert(css.scoped_css.clone());
+        }
+    }
+
     /// Render a template to HTML
     pub fn render(&mut self, template_content: &str) -> Result<String> {
         let html = self.extract_html(template_content);

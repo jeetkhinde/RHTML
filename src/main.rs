@@ -299,6 +299,10 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
     // Create a new renderer for this request with component access
     let mut renderer = Renderer::with_loader(loader_arc);
 
+    // Collect CSS from layout and page templates
+    renderer.collect_template_css(&layout_template.scoped_css);
+    renderer.collect_template_css(&page_template.scoped_css);
+
     // Set route parameters as variables
     for (param_name, param_value) in &route_match.params {
         renderer.set_var(param_name, Value::String(param_value.clone()));
@@ -437,6 +441,10 @@ async fn render_route_direct(
     drop(loader);
 
     let mut renderer = Renderer::with_loader(loader_arc);
+
+    // Collect CSS from layout and page templates
+    renderer.collect_template_css(&layout_template.scoped_css);
+    renderer.collect_template_css(&page_template.scoped_css);
 
     // Set request context data as variables
     setup_request_context(&mut renderer, &request_context);
