@@ -170,7 +170,7 @@ fn setup_demo_data(renderer: &mut Renderer, route: &str, ...) {
 }
 
 // All pages get PageProps<()> - no real data! ❌
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     // Can't fetch from database ❌
     // Can't access query params ❌
     // Can't read cookies ❌
@@ -193,7 +193,7 @@ data fn getUsers(query: &Query, ctx: &RequestContext) -> Result<Vec<User>, Error
     Ok(users)
 }
 
-cmp Page(props: &PageProps<Result<Vec<User>, Error>>) {
+WebPage(props: &PageProps<Result<Vec<User>, Error>>) {
     <div r-match="props.data">
         <div r-when="Ok(users)">
             <div r-for="user in users">
@@ -219,7 +219,7 @@ cmp Page(props: &PageProps<Result<Vec<User>, Error>>) {
 
 | # | Feature | Status | Location | Notes |
 |---|---------|--------|----------|-------|
-| 3.2.1 | `cmp Page() {}` | ✅ **DONE** | `renderer.rs` | Works |
+| 3.2.1 | `WebPage() {}` | ✅ **DONE** | `renderer.rs` | Works |
 | 3.2.2 | WASM hydration | ❌ **N/A** | - | SSR-only by design |
 | 3.2.3 | Template integration | ✅ **DONE** | Full syntax | Works |
 
@@ -373,7 +373,7 @@ data fn getUsers(query: &Query, ctx: &RequestContext) -> Result<Vec<User>, Error
     db::get_users().await
 }
 
-cmp Page(props: &PageProps<Result<Vec<User>, Error>>) {
+WebPage(props: &PageProps<Result<Vec<User>, Error>>) {
     <!-- Handler decides: HTML or JSON based on Accept header -->
     <!-- Same data, same auth, different format -->
 }

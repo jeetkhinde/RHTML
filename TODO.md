@@ -123,7 +123,7 @@
 - [x] **Form data handling** (POST/PUT/DELETE) 🆕
 - [x] **Request context access** (headers, cookies, method) 🆕
 - [x] **Content negotiation** (HTML/JSON based on Accept header) 🆕
-- [x] Template rendering with `cmp Page() {}`
+- [x] Template rendering with `WebPage() {}`
 - [x] Context passing to templates
 
 ### 4. Directives (8 features)

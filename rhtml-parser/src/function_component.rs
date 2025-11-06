@@ -351,22 +351,21 @@ impl FunctionComponentParser {
         result
     }
 
-    /// Convert function component to cmp-style syntax
-    /// This allows the existing renderer to handle it
-    /// Special case: WebPage (case-insensitive) -> cmp Page
-    pub fn convert_to_cmp_syntax(component: &FunctionComponent) -> String {
-        let cmp_name = if Self::is_webpage(&component.name) {
-            "Page".to_string()
+    /// Convert function component to standardized syntax
+    /// WebPage (case-insensitive) is kept as WebPage (normalized)
+    /// Other components keep their original names
+    pub fn convert_to_standard_syntax(component: &FunctionComponent) -> String {
+        let component_name = if Self::is_webpage(&component.name) {
+            "WebPage".to_string()
         } else {
             component.name.clone()
         };
 
-        format!("cmp {} {{\n{}\n}}", cmp_name, component.body)
+        format!("{} {{\n{}\n}}", component_name, component.body)
     }
 
-    /// Process content: convert function components to cmp syntax
+    /// Process content: convert function components to standard syntax
     /// Returns processed content and list of partials
-    /// This maintains backward compatibility
     pub fn process_content(content: &str) -> ProcessedContent {
         // If no function components, return as-is
         if !Self::has_function_components(content) {
@@ -394,7 +393,7 @@ impl FunctionComponentParser {
         // Remove struct definitions (we don't need them at runtime)
         result = Self::remove_structs(&result);
 
-        // Replace each function component with cmp syntax
+        // Replace each function component with standard syntax
         for component in components {
             // Find the original function component in result using a simple pattern
             // Pattern: Name( - then we'll manually find the closing paren and brace
@@ -442,9 +441,9 @@ impl FunctionComponentParser {
                                     is_partial: component.is_partial,
                                 };
 
-                                // Replace with cmp syntax (handles WebPage -> Page conversion)
-                                let cmp_syntax = Self::convert_to_cmp_syntax(&temp_component);
-                                result = format!("{}{}{}", &result[..start], cmp_syntax, &result[end..]);
+                                // Replace with standard syntax (normalizes WebPage case)
+                                let standard_syntax = Self::convert_to_standard_syntax(&temp_component);
+                                result = format!("{}{}{}", &result[..start], standard_syntax, &result[end..]);
                             }
                         }
                     }
@@ -523,7 +522,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_to_cmp_syntax() {
+    fn test_convert_to_standard_syntax() {
         let component = FunctionComponent {
             name: "Badge".to_string(),
             props_type: Some("BadgeProps".to_string()),
@@ -532,9 +531,9 @@ mod tests {
             is_partial: false,
         };
 
-        let cmp = FunctionComponentParser::convert_to_cmp_syntax(&component);
-        assert!(cmp.contains("cmp Badge"));
-        assert!(cmp.contains("<span>{label}</span>"));
+        let standard = FunctionComponentParser::convert_to_standard_syntax(&component);
+        assert!(standard.contains("Badge {"));
+        assert!(standard.contains("<span>{label}</span>"));
     }
 
     #[test]
@@ -552,8 +551,8 @@ Badge(BadgeProps { label, color }: BadgeProps) {
 
         let processed = FunctionComponentParser::process_content(content);
 
-        // Should contain cmp syntax
-        assert!(processed.content.contains("cmp Badge"));
+        // Should contain standard syntax
+        assert!(processed.content.contains("Badge {"));
         // Should not contain struct
         assert!(!processed.content.contains("struct BadgeProps"));
         // Should preserve HTML
@@ -611,8 +610,8 @@ Badge(BadgeProps { label, color }: BadgeProps) {
 
         let processed = FunctionComponentParser::process_content(content);
 
-        // Should contain cmp syntax
-        assert!(processed.content.contains("cmp Badge"));
+        // Should contain standard syntax
+        assert!(processed.content.contains("Badge {"));
         // Should not contain @partial attribute
         assert!(!processed.content.contains("@partial"));
         // Should not contain struct
@@ -658,15 +657,14 @@ Badge() {
             is_partial: false,
         };
 
-        let cmp = FunctionComponentParser::convert_to_cmp_syntax(&component);
-        assert!(cmp.contains("cmp Page"));
-        assert!(!cmp.contains("cmp WebPage"));
-        assert!(cmp.contains("<div>Content</div>"));
+        let standard = FunctionComponentParser::convert_to_standard_syntax(&component);
+        assert!(standard.contains("WebPage {"));
+        assert!(standard.contains("<div>Content</div>"));
     }
 
     #[test]
     fn test_webpage_case_insensitive() {
-        // Test different cases
+        // Test different cases - all should normalize to "WebPage"
         for webpage_name in &["WebPage", "webpage", "WEBPAGE", "wEbPaGe"] {
             let component = FunctionComponent {
                 name: webpage_name.to_string(),
@@ -676,11 +674,12 @@ Badge() {
                 is_partial: false,
             };
 
-            let cmp = FunctionComponentParser::convert_to_cmp_syntax(&component);
+            let standard = FunctionComponentParser::convert_to_standard_syntax(&component);
             assert!(
-                cmp.contains("cmp Page"),
-                "Failed for case: {}",
-                webpage_name
+                standard.contains("WebPage {"),
+                "Failed for case: {} - got: {}",
+                webpage_name,
+                standard
             );
         }
     }
@@ -710,13 +709,12 @@ WebPage(props: &PageProps<()>) {
         // Debug: print the processed content
         println!("Processed content:\n{}", processed.content);
 
-        // Should contain cmp Page (not cmp WebPage)
+        // Should contain WebPage { (normalized, no cmp)
         assert!(
-            processed.content.contains("cmp Page"),
-            "Content does not contain 'cmp Page': {}",
+            processed.content.contains("WebPage {"),
+            "Content does not contain 'WebPage {{': {}",
             processed.content
         );
-        assert!(!processed.content.contains("cmp WebPage"));
         // Should preserve HTML
         assert!(processed.content.contains("Users Directory"));
     }

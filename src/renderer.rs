@@ -62,7 +62,7 @@ impl Renderer {
         Ok(interpolated)
     }
 
-    /// Check if content has a cmp component
+    /// Check if content has a WebPage component
     fn has_component(&self, content: &str) -> bool {
         // Skip slots block if exists
         let search_start = if let Some(slots_pos) = content.find("slots {") {
@@ -87,12 +87,12 @@ impl Renderer {
             0
         };
 
-        content[search_start..].contains("cmp ")
+        content[search_start..].contains("WebPage {")
     }
 
     /// Extract HTML content from RHTML template
-    /// This needs to extract ONLY the cmp function content, not slots block
-    /// If no cmp component exists, returns the entire content (for partials)
+    /// This needs to extract ONLY the WebPage function content, not slots block
+    /// If no WebPage component exists, returns the entire content (for partials)
     fn extract_html(&self, content: &str) -> String {
         // First, skip past any slots block if it exists
         let search_start = if let Some(slots_pos) = content.find("slots {") {
@@ -118,12 +118,12 @@ impl Renderer {
             0
         };
 
-        // Now find "cmp" keyword after the slots block
-        if let Some(cmp_pos) = content[search_start..].find("cmp ") {
-            let abs_cmp_pos = search_start + cmp_pos;
-            // Find the opening brace after cmp
-            if let Some(start) = content[abs_cmp_pos..].find('{') {
-                let abs_start = abs_cmp_pos + start;
+        // Now find "WebPage {" keyword after the slots block
+        if let Some(webpage_pos) = content[search_start..].find("WebPage {") {
+            let abs_webpage_pos = search_start + webpage_pos;
+            // Find the opening brace after WebPage
+            if let Some(start) = content[abs_webpage_pos..].find('{') {
+                let abs_start = abs_webpage_pos + start;
 
                 // Find matching closing brace
                 let mut depth = 0;
@@ -148,7 +148,7 @@ impl Renderer {
             }
         }
 
-        // No cmp component found - treat as partial (return entire content)
+        // No WebPage component found - treat as partial (return entire content)
         content.trim().to_string()
     }
 
@@ -725,7 +725,7 @@ impl Renderer {
     }
 
     /// Check if content should be rendered as a partial
-    /// Returns true if content has no cmp component
+    /// Returns true if content has no WebPage component
     pub fn is_partial(&self, content: &str) -> bool {
         !self.has_component(content)
     }

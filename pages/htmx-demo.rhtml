@@ -3,7 +3,7 @@ title: "HTMX Partial Rendering Demo",
 footer: "HTMX + RHTML = Perfect Match!"
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div class="container mx-auto p-8 max-w-4xl">
     <h1 class="text-4xl font-bold mb-4">HTMX + Partial Rendering Demo</h1>
     <p class="text-gray-600 mb-8">
@@ -110,7 +110,7 @@ cmp Page(props: &PageProps<()>) {
         <div>
           <h3 class="font-semibold text-lg">2. No Page Component = Partial</h3>
           <p class="text-gray-700">
-            Files without a <code>cmp Page()</code> component are automatically treated as partials.
+            Files without a <code>WebPage()</code> component are automatically treated as partials.
             Example: <code>partials/user-item.rhtml</code>
           </p>
         </div>
@@ -146,7 +146,7 @@ cmp Page(props: &PageProps<()>) {
         <div>
           <h3 class="font-semibold mb-2">Creating a Partial File:</h3>
           <pre class="bg-gray-100 p-4 rounded text-sm overflow-x-auto"><code>&lt;!-- pages/partials/user-item.rhtml --&gt;
-&lt;!-- No cmp Page() = automatic partial --&gt;
+&lt;!-- No WebPage() = automatic partial --&gt;
 &lt;div class="user-item"&gt;
     &lt;h3&gt;{query_name}&lt;/h3&gt;
     &lt;p&gt;{query_email}&lt;/p&gt;

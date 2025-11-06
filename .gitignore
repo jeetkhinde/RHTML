@@ -1,1 +1,3 @@
 /target
+rhtml-parser/target/
+rhtml-parser/Cargo.lock

@@ -5,20 +5,19 @@ slots {
 WebPage(props: &PageProps<()>) {
     <div class="container">
         <h1 class="page-title">WebPage Syntax Demo 🚀</h1>
-        <p class="subtitle">Using case-insensitive WebPage instead of cmp Page</p>
+        <p class="subtitle">The only way to define pages in RHTML</p>
 
         <section class="demo-section">
             <h2>What is WebPage?</h2>
             <div class="explanation">
-                <p>You can now use <code>WebPage</code> as a more explicit way to define pages!</p>
-                <p>All of these are equivalent:</p>
+                <p><code>WebPage</code> is the ONLY way to define pages in RHTML!</p>
+                <p>All of these case variations are equivalent:</p>
                 <ul>
-                    <li><code>WebPage(...) &#123; ... &#125;</code></li>
+                    <li><code>WebPage(...) &#123; ... &#125;</code> (recommended)</li>
                     <li><code>webpage(...) &#123; ... &#125;</code></li>
                     <li><code>WEBPAGE(...) &#123; ... &#125;</code></li>
-                    <li><code>cmp Page(...) &#123; ... &#125;</code> (original syntax)</li>
                 </ul>
-                <p>They all convert to <code>cmp Page</code> internally!</p>
+                <p>They all normalize to <code>WebPage</code> internally!</p>
             </div>
         </section>
 
@@ -49,8 +48,8 @@ WebPage(props: &amp;PageProps&lt;()&gt;) &#123;
                     <p>Write it how you like: WebPage, webpage, WEBPAGE</p>
                 </div>
                 <div class="benefit-card">
-                    <h3>🔄 Compatible</h3>
-                    <p>Works alongside existing cmp Page syntax</p>
+                    <h3>🎨 Simple</h3>
+                    <p>One clear way to define pages</p>
                 </div>
                 <div class="benefit-card">
                     <h3>🎯 Type Safe</h3>

@@ -336,7 +336,7 @@ Place `@layout(false)` at the top of any `.rhtml` file to render without layout 
 ```rhtml
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html>
     <head><title>Custom Page</title></head>
@@ -354,7 +354,7 @@ Infrastructure added for future custom layout support:
 ```rhtml
 @layout("dashboard")  // Future: use dashboard layout
 
-cmp Page(...) {
+WebPage(...) {
     <!-- Content -->
 }
 ```
@@ -476,7 +476,7 @@ Combine with named partials for powerful patterns:
 partial Stats(...) { }
 partial Charts(...) { }
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <!-- Custom structure + dynamic partials -->
 }

@@ -122,7 +122,7 @@ slots {
   footer: "User Management"
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div class="container mx-auto p-4">
     <h1 class="text-3xl font-bold mb-6">Users</h1>
 
@@ -202,7 +202,7 @@ partial ActiveUsers(props: &PartialProps<()>) {
   <div>Active Users List</div>
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <button hx-get="/users?partial=Stats">Load Stats</button>
 }
 ```
@@ -224,7 +224,7 @@ Control layout rendering declaratively:
 ```rhtml
 @layout(false)  <!-- Disable layout for this page -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <!DOCTYPE html>
   <html>
   <head><title>Custom Page</title></head>
@@ -345,7 +345,7 @@ Use bracket notation for dynamic segments:
 ```rhtml
 <!-- pages/users/[id].rhtml -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div>
     <h1>User Profile #{id}</h1>
     <p>Viewing user: {id}</p>
@@ -459,7 +459,7 @@ See [TODO.md](TODO.md) for detailed feature tracking.
 ```rhtml
 <!-- pages/todos.rhtml -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div class="max-w-2xl mx-auto p-4">
     <h1>Todo List</h1>
 
