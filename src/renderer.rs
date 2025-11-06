@@ -804,8 +804,9 @@ impl Renderer {
     /// - @layout("custom") -> Use specific layout
     /// - No directive -> Default behavior (use _layout.rhtml)
     pub fn parse_layout_directive(&self, content: &str) -> Option<LayoutDirective> {
-        // Pattern: @layout(false) or @layout("name")
-        let re = Regex::new(r#"@layout\((false|"([^"]+)")\)"#).unwrap();
+        // Pattern: @layout(false) or @layout("name") at the START of the file
+        // Use ^ to match only at the beginning, with optional whitespace
+        let re = Regex::new(r#"^\s*@layout\((false|"([^"]+)")\)"#).unwrap();
 
         if let Some(caps) = re.captures(content) {
             if caps.get(1).map(|m| m.as_str()) == Some("false") {
@@ -822,7 +823,8 @@ impl Renderer {
 
     /// Strip @layout directive from content (for rendering)
     pub fn strip_layout_directive(&self, content: &str) -> String {
-        let re = Regex::new(r#"@layout\((false|"[^"]+")\)\s*\n?"#).unwrap();
+        // Strip @layout directive only at the start of the file
+        let re = Regex::new(r#"^\s*@layout\((false|"[^"]+")\)\s*\n?"#).unwrap();
         re.replace(content, "").to_string()
     }
 
