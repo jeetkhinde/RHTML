@@ -4,87 +4,85 @@ cmp layout(slots: &Slots) {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{slots.get("title").unwrap_or("Users - RHTML App")}</title>
+    <title>{slots.get("title").unwrap_or("Users - RHTML")}</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="users-section">
-      <nav class="section-nav">
-        <div class="container">
-          <div class="nav-links">
+  <body class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            RHTML Demo
+          </h1>
+          <div class="flex gap-2">
             <a href="/" class="nav-link">← Home</a>
-            <a href="/users" class="nav-link">Users</a>
-            <a href="/users/new" class="nav-link">+ New User</a>
+            <a href="/users" class="nav-link active">Users</a>
+            <a href="/users/new" class="nav-link-primary">+ New User</a>
           </div>
         </div>
-      </nav>
+      </div>
+    </nav>
 
-      <main class="main-content">
+    <!-- Main Content -->
+    <main class="py-12 px-6">
+      <div class="max-w-7xl mx-auto">
         {slots.content}
-      </main>
+      </div>
+    </main>
 
-      <footer class="section-footer">
-        <div class="container">
-          <p>{slots.get("footer").unwrap_or("Users Section - RHTML Demo")}</p>
-        </div>
-      </footer>
-    </div>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6 mt-auto">
+      <div class="max-w-7xl mx-auto px-6 text-center">
+        <p class="text-sm text-gray-600">
+          {slots.get("footer").unwrap_or("Users Section • RHTML Demo")}
+        </p>
+      </div>
+    </footer>
   </body>
   </html>
 }
 
 css layout {
-  .users-section {
-    min-height: 100vh;
+  body {
     display: flex;
     flex-direction: column;
-  }
-
-  .section-nav {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 1rem 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .container {
-    max-width: 64rem;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 1.5rem;
+    min-height: 100vh;
   }
 
   .nav-link {
-    color: white;
+    color: #475569;
     text-decoration: none;
     font-weight: 500;
     padding: 0.5rem 1rem;
-    border-radius: 6px;
-    transition: background 0.2s;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-size: 0.9375rem;
   }
 
   .nav-link:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: #f1f5f9;
+    color: #1e293b;
   }
 
-  .main-content {
-    flex: 1;
-    padding: 2rem 0;
+  .nav-link.active {
+    background: #f1f5f9;
+    color: #4f46e5;
   }
 
-  .section-footer {
-    background: white;
-    padding: 1.5rem 0;
-    margin-top: 2rem;
-    border-top: 1px solid #e2e8f0;
+  .nav-link-primary {
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-size: 0.9375rem;
   }
 
-  .section-footer p {
-    text-align: center;
-    color: #64748b;
-    font-size: 0.875rem;
+  .nav-link-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 }
