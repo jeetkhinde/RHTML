@@ -38,6 +38,12 @@ pub struct ProcessedContent {
 pub struct FunctionComponentParser;
 
 impl FunctionComponentParser {
+    /// Check if a component name is "WebPage" (case-insensitive)
+    /// Supports: webpage, WEBPAGE, WebPage, etc.
+    fn is_webpage(name: &str) -> bool {
+        name.to_lowercase() == "webpage"
+    }
+
     /// Check if content has @partial attribute
     /// Format: @partial (on its own line or with whitespace)
     pub fn has_partial_attribute(content: &str) -> bool {
@@ -92,7 +98,8 @@ impl FunctionComponentParser {
     pub fn has_function_components(content: &str) -> bool {
         // Look for pattern: ComponentName(...) {
         // But not: cmp ComponentName, css ComponentName, partial ComponentName
-        let re = Regex::new(r"(?m)^\s*[A-Z]\w*\s*\([^)]*\)\s*\{").unwrap();
+        // Use a more permissive regex that handles nested parentheses
+        let re = Regex::new(r"(?m)^\s*[A-Z]\w*\s*\(").unwrap();
 
         for mat in re.find_iter(content) {
             let line_start = content[..mat.start()]
@@ -170,12 +177,13 @@ impl FunctionComponentParser {
     pub fn extract_function_components(content: &str) -> Vec<FunctionComponent> {
         let mut components = Vec::new();
 
-        // Pattern: ComponentName(params) {
-        let re = Regex::new(r"([A-Z]\w*)\s*\(([^)]*)\)\s*\{").unwrap();
+        // Pattern: ComponentName( - we'll manually find the closing paren
+        let re = Regex::new(r"([A-Z]\w*)\s*\(").unwrap();
 
         for cap in re.captures_iter(content) {
             let full_match = cap.get(0).unwrap();
             let match_start = full_match.start();
+            let params_start = full_match.end();
 
             // Check it's not preceded by cmp, css, or partial
             let line_start = content[..match_start]
@@ -193,8 +201,39 @@ impl FunctionComponentParser {
 
             if let Some(name_match) = cap.get(1) {
                 let component_name = name_match.as_str().to_string();
-                let params = cap.get(2).map(|m| m.as_str()).unwrap_or("");
-                let body_start = full_match.end();
+
+                // Find matching closing parenthesis
+                let params_and_rest = &content[params_start..];
+                let mut depth = 1;
+                let mut params_end = None;
+
+                for (i, ch) in params_and_rest.char_indices() {
+                    if ch == '(' {
+                        depth += 1;
+                    } else if ch == ')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            params_end = Some(i);
+                            break;
+                        }
+                    }
+                }
+
+                let params_end = match params_end {
+                    Some(end) => end,
+                    None => continue, // No matching paren found
+                };
+
+                let params = &params_and_rest[..params_end];
+                let after_params = &params_and_rest[params_end + 1..];
+
+                // Find the opening brace
+                let brace_pos = match after_params.trim_start().chars().next() {
+                    Some('{') => after_params.find('{').unwrap(),
+                    _ => continue, // No opening brace found
+                };
+
+                let body_start = params_start + params_end + 1 + brace_pos + 1;
 
                 // Parse parameters to extract props type and fields
                 let (props_type, props_fields) = Self::parse_component_params(params);
@@ -314,8 +353,15 @@ impl FunctionComponentParser {
 
     /// Convert function component to cmp-style syntax
     /// This allows the existing renderer to handle it
+    /// Special case: WebPage (case-insensitive) -> cmp Page
     pub fn convert_to_cmp_syntax(component: &FunctionComponent) -> String {
-        format!("cmp {} {{\n{}\n}}", component.name, component.body)
+        let cmp_name = if Self::is_webpage(&component.name) {
+            "Page".to_string()
+        } else {
+            component.name.clone()
+        };
+
+        format!("cmp {} {{\n{}\n}}", cmp_name, component.body)
     }
 
     /// Process content: convert function components to cmp syntax
@@ -350,39 +396,56 @@ impl FunctionComponentParser {
 
         // Replace each function component with cmp syntax
         for component in components {
-            // Find the original function component in result
-            let patterns = vec![
-                // Pattern 1: Name(PropsType { field1, field2 }: PropsType) {
-                format!(
-                    r"{}\s*\([^)]*\{{[^}}]*\}}[^)]*\)\s*\{{",
-                    regex::escape(&component.name)
-                ),
-                // Pattern 2: Name(props: PropsType) {
-                format!(
-                    r"{}\s*\([^)]*:[^)]*\)\s*\{{",
-                    regex::escape(&component.name)
-                ),
-                // Pattern 3: Name(PropsType) {
-                format!(
-                    r"{}\s*\([^)]*\)\s*\{{",
-                    regex::escape(&component.name)
-                ),
-            ];
+            // Find the original function component in result using a simple pattern
+            // Pattern: Name( - then we'll manually find the closing paren and brace
+            let search_pattern = format!(r"{}\s*\(", regex::escape(&component.name));
 
-            for pattern in patterns {
-                if let Ok(re) = Regex::new(&pattern) {
-                    if let Some(mat) = re.find(&result) {
-                        let start = mat.start();
-                        let body_start = mat.end();
+            if let Ok(re) = Regex::new(&search_pattern) {
+                if let Some(mat) = re.find(&result) {
+                    let start = mat.start();
+                    let params_start = mat.end();
 
-                        // Extract the body
-                        if let Some(body) = Self::extract_braced_content(&result[body_start..]) {
-                            let end = body_start + body.len() + 1;
+                    // Find matching closing parenthesis
+                    let after_start = &result[params_start..];
+                    let mut depth = 1;
+                    let mut params_end = None;
 
-                            // Replace with cmp syntax
-                            let cmp_syntax = format!("cmp {} {{\n{}\n}}", component.name, body);
-                            result = format!("{}{}{}", &result[..start], cmp_syntax, &result[end..]);
-                            break;
+                    for (i, ch) in after_start.char_indices() {
+                        if ch == '(' {
+                            depth += 1;
+                        } else if ch == ')' {
+                            depth -= 1;
+                            if depth == 0 {
+                                params_end = Some(i);
+                                break;
+                            }
+                        }
+                    }
+
+                    if let Some(params_end) = params_end {
+                        let after_params = &after_start[params_end + 1..];
+
+                        // Find the opening brace
+                        if let Some(brace_pos) = after_params.find('{') {
+                            let body_start = params_start + params_end + 1 + brace_pos + 1;
+
+                            // Extract the body
+                            if let Some(body) = Self::extract_braced_content(&result[body_start..]) {
+                                let end = body_start + body.len() + 1;
+
+                                // Create a temporary component with the extracted body
+                                let temp_component = FunctionComponent {
+                                    name: component.name.clone(),
+                                    props_type: component.props_type.clone(),
+                                    props_fields: component.props_fields.clone(),
+                                    body: body.to_string(),
+                                    is_partial: component.is_partial,
+                                };
+
+                                // Replace with cmp syntax (handles WebPage -> Page conversion)
+                                let cmp_syntax = Self::convert_to_cmp_syntax(&temp_component);
+                                result = format!("{}{}{}", &result[..start], cmp_syntax, &result[end..]);
+                            }
                         }
                     }
                 }
@@ -573,5 +636,88 @@ Badge() {
         let cleaned = FunctionComponentParser::remove_partial_attributes(content);
         assert!(!cleaned.contains("@partial"));
         assert!(cleaned.contains("Badge()"));
+    }
+
+    #[test]
+    fn test_is_webpage() {
+        assert!(FunctionComponentParser::is_webpage("WebPage"));
+        assert!(FunctionComponentParser::is_webpage("webpage"));
+        assert!(FunctionComponentParser::is_webpage("WEBPAGE"));
+        assert!(FunctionComponentParser::is_webpage("wEbPaGe"));
+        assert!(!FunctionComponentParser::is_webpage("Page"));
+        assert!(!FunctionComponentParser::is_webpage("Component"));
+    }
+
+    #[test]
+    fn test_webpage_conversion() {
+        let component = FunctionComponent {
+            name: "WebPage".to_string(),
+            props_type: Some("PageProps<()>".to_string()),
+            props_fields: vec![],
+            body: "<div>Content</div>".to_string(),
+            is_partial: false,
+        };
+
+        let cmp = FunctionComponentParser::convert_to_cmp_syntax(&component);
+        assert!(cmp.contains("cmp Page"));
+        assert!(!cmp.contains("cmp WebPage"));
+        assert!(cmp.contains("<div>Content</div>"));
+    }
+
+    #[test]
+    fn test_webpage_case_insensitive() {
+        // Test different cases
+        for webpage_name in &["WebPage", "webpage", "WEBPAGE", "wEbPaGe"] {
+            let component = FunctionComponent {
+                name: webpage_name.to_string(),
+                props_type: None,
+                props_fields: vec![],
+                body: "<div>Test</div>".to_string(),
+                is_partial: false,
+            };
+
+            let cmp = FunctionComponentParser::convert_to_cmp_syntax(&component);
+            assert!(
+                cmp.contains("cmp Page"),
+                "Failed for case: {}",
+                webpage_name
+            );
+        }
+    }
+
+    #[test]
+    fn test_webpage_full_example() {
+        let content = r#"
+WebPage(props: &PageProps<()>) {
+    <div class="container">
+        <h1>Users Directory</h1>
+        <p>Browse all users</p>
+    </div>
+}
+        "#;
+
+        // Debug: check if it detects function components
+        println!("Has function components: {}", FunctionComponentParser::has_function_components(content));
+
+        let components = FunctionComponentParser::extract_function_components(content);
+        println!("Extracted {} components", components.len());
+        for comp in &components {
+            println!("  Component: {}", comp.name);
+        }
+
+        let processed = FunctionComponentParser::process_content(content);
+
+        // Debug: print the processed content
+        println!("Processed content:\n{}", processed.content);
+
+        // Should contain cmp Page (not cmp WebPage)
+        assert!(
+            processed.content.contains("cmp Page"),
+            "Content does not contain 'cmp Page': {}",
+            processed.content
+        );
+        assert!(!processed.content.contains("cmp WebPage"));
+        // Should preserve HTML
+        assert!(processed.content.contains("Users Directory"));
     }
 }
