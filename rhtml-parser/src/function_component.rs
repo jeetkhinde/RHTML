@@ -24,12 +24,69 @@ pub struct FunctionComponent {
     pub props_type: Option<String>,
     pub props_fields: Vec<String>, // Destructured field names
     pub body: String,
+    pub is_partial: bool, // true if marked with @partial attribute
+}
+
+/// Result of processing function-based content
+#[derive(Debug, Clone)]
+pub struct ProcessedContent {
+    pub content: String,
+    pub partials: Vec<String>, // Names of components marked as @partial
 }
 
 /// Parser for function-based components
 pub struct FunctionComponentParser;
 
 impl FunctionComponentParser {
+    /// Check if content has @partial attribute
+    /// Format: @partial (on its own line or with whitespace)
+    pub fn has_partial_attribute(content: &str) -> bool {
+        let re = Regex::new(r"(?m)^\s*@partial\s*$").unwrap();
+        re.is_match(content)
+    }
+
+    /// Check if a specific function component has @partial attribute before it
+    /// Returns true if @partial appears before the component definition
+    fn is_partial_component(content: &str, component_start: usize) -> bool {
+        // Look for @partial in the content before component_start
+        let before_component = &content[..component_start];
+
+        // Find the last occurrence of @partial before the component
+        let re = Regex::new(r"(?m)^\s*@partial\s*$").unwrap();
+
+        if let Some(mat) = re.find_iter(before_component).last() {
+            // Check if there's a struct definition or just whitespace between @partial and component
+            let between = &before_component[mat.end()..];
+
+            // If there's only whitespace and possibly a struct/comments, it's for this component
+            let lines_between: Vec<&str> = between
+                .lines()
+                .map(|l| l.trim())
+                .filter(|l| !l.is_empty())
+                .collect();
+
+            // Check that all non-empty lines are either struct definitions or comments
+            let valid = lines_between.is_empty()
+                || lines_between.iter().all(|line| {
+                    line.starts_with("struct ")
+                        || line.starts_with("//")
+                        || line.starts_with("}")
+                        || line.ends_with("}")
+                        || line.ends_with(",")
+                });
+
+            valid
+        } else {
+            false
+        }
+    }
+
+    /// Remove @partial attributes from content
+    pub fn remove_partial_attributes(content: &str) -> String {
+        let re = Regex::new(r"(?m)^\s*@partial\s*\n?").unwrap();
+        re.replace_all(content, "").to_string()
+    }
+
     /// Check if content contains function-style components
     /// (Components without 'cmp' or 'css' keywords)
     pub fn has_function_components(content: &str) -> bool {
@@ -142,6 +199,9 @@ impl FunctionComponentParser {
                 // Parse parameters to extract props type and fields
                 let (props_type, props_fields) = Self::parse_component_params(params);
 
+                // Check if this component has @partial attribute
+                let is_partial = Self::is_partial_component(content, match_start);
+
                 // Extract component body
                 if let Some(body) = Self::extract_braced_content(&content[body_start..]) {
                     components.push(FunctionComponent {
@@ -149,6 +209,7 @@ impl FunctionComponentParser {
                         props_type,
                         props_fields,
                         body: body.trim().to_string(),
+                        is_partial,
                     });
                 }
             }
@@ -258,20 +319,34 @@ impl FunctionComponentParser {
     }
 
     /// Process content: convert function components to cmp syntax
+    /// Returns processed content and list of partials
     /// This maintains backward compatibility
-    pub fn process_content(content: &str) -> String {
+    pub fn process_content(content: &str) -> ProcessedContent {
         // If no function components, return as-is
         if !Self::has_function_components(content) {
-            return content.to_string();
+            return ProcessedContent {
+                content: content.to_string(),
+                partials: Vec::new(),
+            };
         }
 
         let mut result = content.to_string();
 
+        // Extract function components BEFORE removing structs and @partial
+        let components = Self::extract_function_components(content);
+
+        // Track which components are partials
+        let partials: Vec<String> = components
+            .iter()
+            .filter(|c| c.is_partial)
+            .map(|c| c.name.clone())
+            .collect();
+
+        // Remove @partial attributes
+        result = Self::remove_partial_attributes(&result);
+
         // Remove struct definitions (we don't need them at runtime)
         result = Self::remove_structs(&result);
-
-        // Extract function components
-        let components = Self::extract_function_components(content);
 
         // Replace each function component with cmp syntax
         for component in components {
@@ -314,7 +389,10 @@ impl FunctionComponentParser {
             }
         }
 
-        result
+        ProcessedContent {
+            content: result,
+            partials,
+        }
     }
 }
 
@@ -388,6 +466,7 @@ mod tests {
             props_type: Some("BadgeProps".to_string()),
             props_fields: vec!["label".to_string(), "color".to_string()],
             body: "<span>{label}</span>".to_string(),
+            is_partial: false,
         };
 
         let cmp = FunctionComponentParser::convert_to_cmp_syntax(&component);
@@ -411,11 +490,13 @@ Badge(BadgeProps { label, color }: BadgeProps) {
         let processed = FunctionComponentParser::process_content(content);
 
         // Should contain cmp syntax
-        assert!(processed.contains("cmp Badge"));
+        assert!(processed.content.contains("cmp Badge"));
         // Should not contain struct
-        assert!(!processed.contains("struct BadgeProps"));
+        assert!(!processed.content.contains("struct BadgeProps"));
         // Should preserve HTML
-        assert!(processed.contains("<span class=\"badge"));
+        assert!(processed.content.contains("<span class=\"badge"));
+        // Should have no partials
+        assert!(processed.partials.is_empty());
     }
 
     #[test]
@@ -427,6 +508,70 @@ Badge(BadgeProps { label, color }: BadgeProps) {
         "#;
 
         let processed = FunctionComponentParser::process_content(content);
-        assert_eq!(content, processed);
+        assert_eq!(content, processed.content);
+        assert!(processed.partials.is_empty());
+    }
+
+    #[test]
+    fn test_partial_attribute_detection() {
+        let content = r#"
+@partial
+struct BadgeProps {
+    label: String,
+}
+
+Badge(BadgeProps { label }: BadgeProps) {
+    <span>{label}</span>
+}
+        "#;
+
+        assert!(FunctionComponentParser::has_partial_attribute(content));
+        let components = FunctionComponentParser::extract_function_components(content);
+        assert_eq!(components.len(), 1);
+        assert!(components[0].is_partial);
+        assert_eq!(components[0].name, "Badge");
+    }
+
+    #[test]
+    fn test_process_content_with_partial() {
+        let content = r#"
+@partial
+struct BadgeProps {
+    label: String,
+    color: String,
+}
+
+Badge(BadgeProps { label, color }: BadgeProps) {
+    <span class="badge bg-{color}-500">{label}</span>
+}
+        "#;
+
+        let processed = FunctionComponentParser::process_content(content);
+
+        // Should contain cmp syntax
+        assert!(processed.content.contains("cmp Badge"));
+        // Should not contain @partial attribute
+        assert!(!processed.content.contains("@partial"));
+        // Should not contain struct
+        assert!(!processed.content.contains("struct BadgeProps"));
+        // Should preserve HTML
+        assert!(processed.content.contains("<span class=\"badge"));
+        // Should have Badge as a partial
+        assert_eq!(processed.partials.len(), 1);
+        assert_eq!(processed.partials[0], "Badge");
+    }
+
+    #[test]
+    fn test_remove_partial_attributes() {
+        let content = r#"
+@partial
+Badge() {
+    <span>Test</span>
+}
+        "#;
+
+        let cleaned = FunctionComponentParser::remove_partial_attributes(content);
+        assert!(!cleaned.contains("@partial"));
+        assert!(cleaned.contains("Badge()"));
     }
 }

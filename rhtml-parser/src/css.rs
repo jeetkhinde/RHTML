@@ -161,10 +161,12 @@ impl CssParser {
         result
     }
 
-    /// Process RHTML content and return (content without CSS, scoped CSS)
-    pub fn process_template(content: &str) -> (String, Option<ScopedCss>) {
+    /// Process RHTML content and return (content without CSS, scoped CSS, partials)
+    pub fn process_template(content: &str) -> (String, Option<ScopedCss>, Vec<String>) {
         // First, convert function components to cmp syntax
-        let content = crate::function_component::FunctionComponentParser::process_content(content);
+        let processed = crate::function_component::FunctionComponentParser::process_content(content);
+        let content = processed.content;
+        let partials = processed.partials;
 
         if let Some((scope_name, css)) = Self::extract_css(&content) {
             let scoped_css = Self::scope_css(&scope_name, &css);
@@ -177,9 +179,10 @@ impl CssParser {
                     original_css: css,
                     scoped_css,
                 }),
+                partials,
             )
         } else {
-            (content.to_string(), None)
+            (content.to_string(), None, partials)
         }
     }
 }
@@ -256,10 +259,11 @@ mod tests {
             }
         "#;
 
-        let (content_without_css, scoped_css) = CssParser::process_template(content);
+        let (content_without_css, scoped_css, partials) = CssParser::process_template(content);
 
         assert!(!content_without_css.contains("css Button"));
         assert!(scoped_css.is_some());
+        assert!(partials.is_empty()); // No @partial attribute
 
         let scoped = scoped_css.unwrap();
         assert_eq!(scoped.scope_name, "Button");

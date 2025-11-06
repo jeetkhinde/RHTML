@@ -7,4 +7,6 @@ pub mod function_component;
 pub use css::{CssParser, ScopedCss};
 pub use directive::{Directive, DirectiveParser};
 pub use expression::{ExpressionEvaluator, Value};
-pub use function_component::{FunctionComponent, FunctionComponentParser, PropField, PropsStruct};
+pub use function_component::{
+    FunctionComponent, FunctionComponentParser, ProcessedContent, PropField, PropsStruct,
+};

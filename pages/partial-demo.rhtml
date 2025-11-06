@@ -1,0 +1,282 @@
+slots {
+    title: "Partial Components Demo",
+}
+
+cmp PartialDemoPage {
+    <div class="container">
+        <h1>@partial Attribute Demo</h1>
+        <p class="intro">Components marked with @partial are accessible as public endpoints</p>
+
+        <section class="demo-section">
+            <h2>What is @partial?</h2>
+            <div class="explanation">
+                <p>The <code>@partial</code> attribute makes function components accessible as public endpoints.</p>
+                <p>This is useful for:</p>
+                <ul>
+                    <li>HTMX fragments that can be loaded dynamically</li>
+                    <li>API endpoints that return HTML snippets</li>
+                    <li>Reusable UI fragments that can be embedded anywhere</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>Example 1: PartialBadge Component</h2>
+            <p>Component defined with @partial in <code>components/PartialBadge.rhtml</code></p>
+
+            <h3>Used in Page (via r-component)</h3>
+            <div class="badges-row">
+                <div r-component="PartialBadge" label="Success" color="success" />
+                <div r-component="PartialBadge" label="Warning" color="warning" />
+                <div r-component="PartialBadge" label="Danger" color="danger" />
+                <div r-component="PartialBadge" label="Info" color="info" />
+            </div>
+
+            <h3>Accessible as Public Endpoint</h3>
+            <div class="endpoint-info">
+                <p>This partial can be accessed directly at:</p>
+                <code class="endpoint">/partials/partialbadge</code>
+                <p>Try loading it with HTMX or fetch API!</p>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>Example 2: NotificationPartial</h2>
+            <p>HTMX-friendly notification component</p>
+
+            <h3>Used in Page</h3>
+            <div class="notifications">
+                <div r-component="NotificationPartial" message="Operation completed successfully!" type="success" />
+                <div r-component="NotificationPartial" message="Please review your input." type="warning" />
+                <div r-component="NotificationPartial" message="An error occurred." type="error" />
+                <div r-component="NotificationPartial" message="For your information." type="info" />
+            </div>
+
+            <h3>Accessible as Public Endpoint</h3>
+            <div class="endpoint-info">
+                <p>This partial can be accessed directly at:</p>
+                <code class="endpoint">/partials/notificationpartial</code>
+            </div>
+        </section>
+
+        <section class="demo-section">
+            <h2>HTMX Example</h2>
+            <p>Load partials dynamically with HTMX:</p>
+            <pre><code>&lt;button hx-get="/partials/partialbadge?label=New&color=success"
+        hx-target="#result"&gt;
+    Load Badge
+&lt;/button&gt;
+
+&lt;div id="result"&gt;&lt;/div&gt;</code></pre>
+        </section>
+
+        <section class="code-section">
+            <h2>How to Define a Partial</h2>
+            <pre><code>// File: components/PartialBadge.rhtml
+@partial
+struct PartialBadgeProps {
+    label: String,
+    color: String,
+}
+
+PartialBadge(PartialBadgeProps { label, color }: PartialBadgeProps) {
+    &lt;span class="badge badge-{color}"&gt;
+        {label}
+    &lt;/span&gt;
+}
+
+css PartialBadge {
+    .badge { ... }
+}</code></pre>
+        </section>
+
+        <section class="comparison">
+            <h2>@partial vs Regular Component</h2>
+            <table>
+                <tr>
+                    <th>Feature</th>
+                    <th>Regular Component</th>
+                    <th>@partial Component</th>
+                </tr>
+                <tr>
+                    <td>Used via r-component</td>
+                    <td>✓ Yes</td>
+                    <td>✓ Yes</td>
+                </tr>
+                <tr>
+                    <td>Public HTTP endpoint</td>
+                    <td>✗ No</td>
+                    <td>✓ Yes (/partials/name)</td>
+                </tr>
+                <tr>
+                    <td>HTMX-friendly</td>
+                    <td>✗ No</td>
+                    <td>✓ Yes</td>
+                </tr>
+                <tr>
+                    <td>Scoped CSS</td>
+                    <td>✓ Yes</td>
+                    <td>✓ Yes</td>
+                </tr>
+            </table>
+        </section>
+    </div>
+}
+
+css PartialDemoPage {
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .intro {
+        font-size: 1.125rem;
+        color: #6b7280;
+        margin-bottom: 3rem;
+    }
+
+    .demo-section {
+        margin-bottom: 3rem;
+        padding: 2rem;
+        background: #f9fafb;
+        border-radius: 12px;
+    }
+
+    .demo-section h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #111827;
+    }
+
+    .demo-section h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 1.5rem 0 0.75rem 0;
+        color: #374151;
+    }
+
+    .explanation {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+
+    .explanation ul {
+        margin: 1rem 0 0 1.5rem;
+    }
+
+    .explanation li {
+        margin: 0.5rem 0;
+        color: #4b5563;
+    }
+
+    .badges-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin: 1rem 0;
+    }
+
+    .notifications {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .endpoint-info {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .endpoint {
+        display: block;
+        background: #1f2937;
+        color: #10b981;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        margin: 0.5rem 0;
+        font-family: 'Monaco', monospace;
+        font-size: 0.875rem;
+    }
+
+    .code-section {
+        margin: 3rem 0;
+        padding: 2rem;
+        background: #1f2937;
+        border-radius: 12px;
+    }
+
+    .code-section h2 {
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    pre {
+        margin: 0;
+        overflow-x: auto;
+    }
+
+    code {
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: #d1d5db;
+    }
+
+    .comparison {
+        margin-top: 3rem;
+        padding: 2rem;
+        background: #f9fafb;
+        border-radius: 12px;
+    }
+
+    .comparison h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #111827;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+        background: #f3f4f6;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    td {
+        color: #4b5563;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+}
