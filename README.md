@@ -71,11 +71,18 @@ my-app/
 Layouts wrap page content with common elements like headers and footers.
 
 ```rhtml
-cmp layout(slots: &Slots) {
+pub struct LayoutSlots {
+    pub content: String,
+    pub title: Option<String>,
+    pub footer: Option<String>,
+}
+
+#[layout]
+pub fn layout(slots: LayoutSlots) {
   <!DOCTYPE html>
   <html>
   <head>
-    <title>{slots.get("title").unwrap_or("RHTML App")}</title>
+    <title>{slots.title.unwrap_or("RHTML App".to_string())}</title>
     <script src="https://unpkg.com/htmx.org@1.9.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
@@ -90,7 +97,7 @@ cmp layout(slots: &Slots) {
     </main>
 
     <footer>
-      {slots.get("footer").unwrap_or("© 2024")}
+      {slots.footer.unwrap_or("© 2024".to_string())}
     </footer>
   </body>
   </html>
@@ -117,7 +124,7 @@ Pages define routes and their content. RHTML supports multiple syntaxes - use **
 ```rhtml
 <!-- pages/users/index.rhtml -->
 
-slots {
+slot! {
   title: "Users Directory",
   footer: "User Management"
 }

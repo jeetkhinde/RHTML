@@ -62,10 +62,16 @@ impl Renderer {
         Ok(interpolated)
     }
 
+    /// Find the position of slots block (either old "slots {" or new "__rhtml_slots__ {")
+    fn find_slots_block(&self, content: &str) -> Option<usize> {
+        content.find("__rhtml_slots__ {")
+            .or_else(|| content.find("slots {"))
+    }
+
     /// Check if content has a WebPage component
     fn has_component(&self, content: &str) -> bool {
         // Skip slots block if exists
-        let search_start = if let Some(slots_pos) = content.find("slots {") {
+        let search_start = if let Some(slots_pos) = self.find_slots_block(content) {
             let mut depth = 0;
             let mut found_opening = false;
             let mut slots_end = slots_pos;
@@ -95,7 +101,7 @@ impl Renderer {
     /// If no WebPage component exists, returns the entire content (for partials)
     fn extract_html(&self, content: &str) -> String {
         // First, skip past any slots block if it exists
-        let search_start = if let Some(slots_pos) = content.find("slots {") {
+        let search_start = if let Some(slots_pos) = self.find_slots_block(content) {
             // Find the end of slots block
             let mut depth = 0;
             let mut found_opening = false;
