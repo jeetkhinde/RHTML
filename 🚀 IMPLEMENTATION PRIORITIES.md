@@ -104,7 +104,7 @@ hot_reload = true
 ### Named Partials System ✅ (Nov 3, 2025)
 
 ```rhtml
-<!-- pages/users.rhtml -->
+<!-- pages/users.rs -->
 partial Stats(...) { <div>Statistics</div> }
 partial ActiveUsers(...) { <div>Users</div> }
 
@@ -168,7 +168,7 @@ RHTML combines the best of both worlds:
 
 ### Immediate Priorities (v0.2.0)
 
-1. **Data fn Parsing** - Parse `data fn` from .rhtml files
+1. **Data fn Parsing** - Parse `data fn` from .rs files
    - Requires: Build-time codegen system
    - Complexity: High
    - Impact: Enables in-template data fetching

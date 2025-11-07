@@ -44,10 +44,10 @@ fn main() {
     let mut router = Router::new();
 
     // Add routes from file paths
-    router.add_route(Route::from_path("pages/index.rhtml", "pages"));
-    router.add_route(Route::from_path("pages/about.rhtml", "pages"));
-    router.add_route(Route::from_path("pages/users/[id].rhtml", "pages"));
-    router.add_route(Route::from_path("pages/docs/[...slug].rhtml", "pages"));
+    router.add_route(Route::from_path("pages/index.rs", "pages"));
+    router.add_route(Route::from_path("pages/about.rs", "pages"));
+    router.add_route(Route::from_path("pages/users/[id].rs", "pages"));
+    router.add_route(Route::from_path("pages/docs/[...slug].rs", "pages"));
 
     // Sort routes by priority (call this after adding all routes)
     router.sort_routes();
@@ -75,8 +75,8 @@ fn main() {
     let pages_dir = read_config().pages_dir; // ← You provide this
 
     // Router respects your configuration
-    router.add_route(Route::from_path("app/index.rhtml", &pages_dir));
-    router.add_route(Route::from_path("app/users/[id].rhtml", &pages_dir));
+    router.add_route(Route::from_path("app/index.rs", &pages_dir));
+    router.add_route(Route::from_path("app/users/[id].rs", &pages_dir));
 
     router.sort_routes();
 
@@ -115,7 +115,7 @@ fn main() {
     // Use configured directory
     let pages_dir = &config.routing.pages_dir;
     router.add_route(Route::from_path(
-        &format!("{}/index.rhtml", pages_dir),
+        &format!("{}/index.rs", pages_dir),
         pages_dir
     ));
 
@@ -134,15 +134,15 @@ case_insensitive = true    # Case-insensitive URL matching
 
 | File Path | Route Pattern | Description |
 |-----------|---------------|-------------|
-| `pages/index.rhtml` | `/` | Root page |
-| `pages/about.rhtml` | `/about` | Static route |
-| `pages/users/index.rhtml` | `/users` | Section index |
-| `pages/users/[id].rhtml` | `/users/:id` | Dynamic segment |
-| `pages/docs/[...slug].rhtml` | `/docs/*slug` | Catch-all |
-| `pages/posts/[id?].rhtml` | `/posts/:id?` | Optional param |
-| `pages/_layout.rhtml` | `/` | Root layout |
-| `pages/users/_layout.rhtml` | `/users` | Section layout |
-| `pages/_error.rhtml` | `/` | Root error page |
+| `pages/index.rs` | `/` | Root page |
+| `pages/about.rs` | `/about` | Static route |
+| `pages/users/index.rs` | `/users` | Section index |
+| `pages/users/[id].rs` | `/users/:id` | Dynamic segment |
+| `pages/docs/[...slug].rs` | `/docs/*slug` | Catch-all |
+| `pages/posts/[id?].rs` | `/posts/:id?` | Optional param |
+| `pages/_layout.rs` | `/` | Root layout |
+| `pages/users/_layout.rs` | `/users` | Section layout |
+| `pages/_error.rs` | `/` | Root error page |
 
 ## Examples
 
@@ -152,7 +152,7 @@ case_insensitive = true    # Case-insensitive URL matching
 use rhtml_router::{Router, Route};
 
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/about.rhtml", "pages"));
+router.add_route(Route::from_path("pages/about.rs", "pages"));
 router.sort_routes();
 
 let result = router.match_route("/about").unwrap();
@@ -165,7 +165,7 @@ assert_eq!(result.route.pattern, "/about");
 use rhtml_router::{Router, Route};
 
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/users/[id].rhtml", "pages"));
+router.add_route(Route::from_path("pages/users/[id].rs", "pages"));
 router.sort_routes();
 
 let result = router.match_route("/users/42").unwrap();
@@ -178,7 +178,7 @@ assert_eq!(result.params["id"], "42");
 use rhtml_router::{Router, Route};
 
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/docs/[...slug].rhtml", "pages"));
+router.add_route(Route::from_path("pages/docs/[...slug].rs", "pages"));
 router.sort_routes();
 
 let result = router.match_route("/docs/guide/intro").unwrap();
@@ -191,7 +191,7 @@ assert_eq!(result.params["slug"], "guide/intro");
 use rhtml_router::{Router, Route};
 
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/posts/[id?].rhtml", "pages"));
+router.add_route(Route::from_path("pages/posts/[id?].rs", "pages"));
 router.sort_routes();
 
 // Matches with parameter
@@ -209,7 +209,7 @@ assert!(result.params.get("id").is_none());
 use rhtml_router::{Router, Route};
 
 let mut router = Router::with_case_insensitive(true);
-router.add_route(Route::from_path("pages/about.rhtml", "pages"));
+router.add_route(Route::from_path("pages/about.rs", "pages"));
 router.sort_routes();
 
 // All match the same route
@@ -280,7 +280,7 @@ async fn handle_route(
     // You decide where pages_dir comes from
     let pages_dir = "pages"; // Could be from config, env var, etc.
 
-    router.add_route(Route::from_path("pages/users/[id].rhtml", pages_dir));
+    router.add_route(Route::from_path("pages/users/[id].rs", pages_dir));
     router.sort_routes();
 
     if let Some(route_match) = router.match_route(&format!("/{}", path)) {
@@ -316,7 +316,7 @@ let config = Config::load("rhtml.toml")?;
 // Pass configured values to router
 let mut router = Router::with_case_insensitive(config.routing.case_insensitive);
 router.add_route(Route::from_path(
-    &format!("{}/index.rhtml", config.routing.pages_dir),
+    &format!("{}/index.rs", config.routing.pages_dir),
     &config.routing.pages_dir
 ));
 ```
@@ -335,16 +335,16 @@ Routes are matched in order of priority:
 ### Example Priority Order
 
 ```rust
-let static_route = Route::from_path("pages/users/new.rhtml", "pages");
+let static_route = Route::from_path("pages/users/new.rs", "pages");
 // Priority: 0 (static always wins)
 
-let optional_route = Route::from_path("pages/users/[id?].rhtml", "pages");
+let optional_route = Route::from_path("pages/users/[id?].rs", "pages");
 // Priority: ~3
 
-let dynamic_route = Route::from_path("pages/users/[id].rhtml", "pages");
+let dynamic_route = Route::from_path("pages/users/[id].rs", "pages");
 // Priority: ~4
 
-let catchall_route = Route::from_path("pages/users/[...rest].rhtml", "pages");
+let catchall_route = Route::from_path("pages/users/[...rest].rs", "pages");
 // Priority: 1000+
 ```
 
@@ -358,28 +358,28 @@ When matching `/users/123`:
 
 ## Special Files
 
-### Layout Files (`_layout.rhtml`)
+### Layout Files (`_layout.rs`)
 
 Layout files define nested layouts. The router tracks them separately:
 
 ```rust
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/_layout.rhtml", "pages"));
-router.add_route(Route::from_path("pages/users/_layout.rhtml", "pages"));
+router.add_route(Route::from_path("pages/_layout.rs", "pages"));
+router.add_route(Route::from_path("pages/users/_layout.rs", "pages"));
 
 // Get layout for a route
 let layout = router.get_layout("/users/123").unwrap();
 assert_eq!(layout.pattern, "/users");
 ```
 
-### Error Pages (`_error.rhtml`)
+### Error Pages (`_error.rs`)
 
 Error pages handle 404s and other errors:
 
 ```rust
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/_error.rhtml", "pages"));
-router.add_route(Route::from_path("pages/api/_error.rhtml", "pages"));
+router.add_route(Route::from_path("pages/_error.rs", "pages"));
+router.add_route(Route::from_path("pages/api/_error.rs", "pages"));
 
 // Get error page for a route
 let error = router.get_error_page("/api/users").unwrap();

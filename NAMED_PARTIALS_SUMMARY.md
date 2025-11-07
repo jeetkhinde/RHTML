@@ -20,10 +20,10 @@ Implemented **named partials** - a feature allowing multiple partials to be defi
 pages/
   users/
     partials/
-      stats.rhtml
-      active-users.rhtml
-      recent-activity.rhtml
-    index.rhtml
+      stats.rs
+      active-users.rs
+      recent-activity.rs
+    index.rs
 ```
 **Issues:**
 - Too many files
@@ -34,7 +34,7 @@ pages/
 ### After (Named Partials)
 ```
 pages/
-  users.rhtml  ← All user-related partials in ONE file!
+  users.rs  ← All user-related partials in ONE file!
 ```
 **Benefits:**
 - Single file per domain
@@ -94,7 +94,7 @@ if let Some(partial_name) = request_context.query.get("partial") {
 }
 ```
 
-### 3. Example File: `pages/users.rhtml`
+### 3. Example File: `pages/users.rs`
 
 Created comprehensive example with:
 - **3 named partials:**
@@ -118,7 +118,7 @@ Added complete section including:
 
 ### 5. Home Page Link
 
-Updated `pages/index.rhtml` to add:
+Updated `pages/index.rs` to add:
 ```html
 <a href="/users" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700 inline-block">
     Named Partials 🎯 NEW!
@@ -250,7 +250,7 @@ fetch('/users?partial=ActiveUsers')
    - Error handling with available partials list
    - Applied to both render_route() and render_route_direct()
 
-3. **pages/users.rhtml** (NEW, 187 lines)
+3. **pages/users.rs** (NEW, 187 lines)
    - 3 example named partials
    - Optional Page component with HTMX integration
    - Direct URL examples
@@ -262,7 +262,7 @@ fetch('/users?partial=ActiveUsers')
    - Syntax examples
    - Best practices
 
-5. **pages/index.rhtml** (+4 lines)
+5. **pages/index.rs** (+4 lines)
    - Added link to users demo
 
 **Total Changes:** 5 files, 459 insertions, 1 deletion
@@ -279,7 +279,7 @@ fetch('/users?partial=ActiveUsers')
 ✅ **Regex-Based Parsing** - Fast and reliable extraction
 ✅ **Brace Depth Tracking** - Correctly handles nested braces
 ✅ **Full Documentation** - Comprehensive guide in PARTIAL_RENDERING.md
-✅ **Working Example** - pages/users.rhtml demonstrates all features
+✅ **Working Example** - pages/users.rs demonstrates all features
 
 ---
 
@@ -287,7 +287,7 @@ fetch('/users?partial=ActiveUsers')
 
 ### Pattern 1: Dashboard with Multiple Sections
 ```rhtml
-<!-- pages/dashboard.rhtml -->
+<!-- pages/dashboard.rs -->
 partial Metrics(...) { /* KPI cards */ }
 partial Charts(...) { /* Analytics charts */ }
 partial Activity(...) { /* Recent activity */ }
@@ -301,7 +301,7 @@ WebPage(...) {
 
 ### Pattern 2: Tabs with Lazy Loading
 ```rhtml
-<!-- pages/profile.rhtml -->
+<!-- pages/profile.rs -->
 partial Bio(...) { /* User bio */ }
 partial Posts(...) { /* User posts */ }
 partial Settings(...) { /* User settings */ }
@@ -318,7 +318,7 @@ WebPage(...) {
 
 ### Pattern 3: Partials Without Page
 ```rhtml
-<!-- pages/api/users.rhtml -->
+<!-- pages/api/users.rs -->
 <!-- No Page component needed! -->
 
 partial UserCard(...) { /* User card */ }
@@ -332,7 +332,7 @@ Access: `/api/users?partial=UserCard`
 ## Architecture Benefits
 
 ### 1. Domain Cohesion
-All user-related partials in `pages/users.rhtml` instead of scattered across multiple files.
+All user-related partials in `pages/users.rs` instead of scattered across multiple files.
 
 ### 2. Reduced Boilerplate
 No need for empty Page components just to hold partials.
@@ -435,7 +435,7 @@ This feature elevates RHTML's organizational capabilities:
 
 User quote:
 > "I'd prefer not to put these partials under a Pages/users/partials directory.
-> Instead, user-related components (partials) could be defined in Pages/users.rhtml"
+> Instead, user-related components (partials) could be defined in Pages/users.rs"
 
 **Status:** FULLY IMPLEMENTED ✅
 

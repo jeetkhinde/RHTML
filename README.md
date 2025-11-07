@@ -42,18 +42,18 @@ cargo run
 ```
 my-app/
 ├── pages/
-│   ├── _layout.rhtml         # Root layout
-│   ├── index.rhtml           # Home page (/)
-│   ├── about.rhtml           # About page (/about)
+│   ├── _layout.rs         # Root layout
+│   ├── index.rs           # Home page (/)
+│   ├── about.rs           # About page (/about)
 │   └── users/
-│       ├── _layout.rhtml     # Users section layout
-│       ├── index.rhtml       # Users list (/users)
-│       ├── [id].rhtml        # User detail (/users/:id)
-│       └── new.rhtml         # New user form (/users/new)
+│       ├── _layout.rs     # Users section layout
+│       ├── index.rs       # Users list (/users)
+│       ├── [id].rs        # User detail (/users/:id)
+│       └── new.rs         # New user form (/users/new)
 ├── components/
-│   ├── Header.rhtml
-│   ├── Footer.rhtml
-│   └── Button.rhtml
+│   ├── Header.rs
+│   ├── Footer.rs
+│   └── Button.rs
 ├── static/
 │   └── favicon.ico
 ├── src/
@@ -66,7 +66,7 @@ my-app/
 
 ## 📝 File Types
 
-### Layout Files (`_layout.rhtml`)
+### Layout Files (`_layout.rs`)
 
 Layouts wrap page content with common elements like headers and footers.
 
@@ -117,12 +117,12 @@ css layout {
 
 ---
 
-### Page Files (`*.rhtml`)
+### Page Files (`*.rs`)
 
 Pages define routes and their content. RHTML supports multiple syntaxes - use **#[webpage]** for a Rust-native feel:
 
 ```rhtml
-<!-- pages/users/index.rhtml -->
+<!-- pages/users/index.rs -->
 
 slot! {
   title: "Users Directory",
@@ -157,12 +157,12 @@ css Page {
 
 ---
 
-### Component Files (`components/*.rhtml`)
+### Component Files (`components/*.rs`)
 
 Reusable UI components.
 
 ```rhtml
-<!-- components/Button.rhtml -->
+<!-- components/Button.rs -->
 
 cmp Button {
   <button class="btn">
@@ -202,7 +202,7 @@ css Button {
 Define multiple partials in a single file for better domain organization:
 
 ```rhtml
-<!-- pages/users.rhtml -->
+<!-- pages/users.rs -->
 
 partial Stats(props: &PartialProps<()>) {
   <div>User Statistics</div>
@@ -341,19 +341,19 @@ Routes are automatically generated from your file structure:
 
 | File Path | Route | Params |
 |-----------|-------|--------|
-| `pages/index.rhtml` | `/` | - |
-| `pages/about.rhtml` | `/about` | - |
-| `pages/users/index.rhtml` | `/users` | - |
-| `pages/users/new.rhtml` | `/users/new` | - |
-| `pages/users/[id].rhtml` | `/users/:id` | `id` |
-| `pages/blog/[slug].rhtml` | `/blog/:slug` | `slug` |
+| `pages/index.rs` | `/` | - |
+| `pages/about.rs` | `/about` | - |
+| `pages/users/index.rs` | `/users` | - |
+| `pages/users/new.rs` | `/users/new` | - |
+| `pages/users/[id].rs` | `/users/:id` | `id` |
+| `pages/blog/[slug].rs` | `/blog/:slug` | `slug` |
 
 ### Dynamic Routes
 
 Use bracket notation for dynamic segments:
 
 ```rhtml
-<!-- pages/users/[id].rhtml -->
+<!-- pages/users/[id].rs -->
 
 WebPage(props: &PageProps<()>) {
   <div>
@@ -467,7 +467,7 @@ See [TODO.md](TODO.md) for detailed feature tracking.
 ### HTMX Integration
 
 ```rhtml
-<!-- pages/todos.rhtml -->
+<!-- pages/todos.rs -->
 
 WebPage(props: &PageProps<()>) {
   <div class="max-w-2xl mx-auto p-4">
@@ -656,12 +656,12 @@ See [DOCUMENTATION_STATUS.md](DOCUMENTATION_STATUS.md) for complete status.
 - Access in templates via `{variable_name}`
 
 **Coming in v0.2.0:**
-- `data fn` functions in .rhtml files
+- `data fn` functions in .rs files
 - Typed `PageProps<T>` with actual data
 
 ### Does it support TypeScript/JSX?
 
-No. RHTML uses `.rhtml` files with embedded Rust code, not JavaScript.
+No. RHTML uses `.rs` files with embedded Rust code, not JavaScript.
 
 ### Can I use it with databases?
 

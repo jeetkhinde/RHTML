@@ -29,7 +29,7 @@ rhtml-parser:
 
 ### A. COMPONENT SYNTAX (New cmp syntax)
 
-File: components/Button.rhtml
+File: components/Button.rs
 ```
 cmp Button {
   <button class="btn">
@@ -47,7 +47,7 @@ css Button {
 
 ### B. COMPONENT WITH @partial ANNOTATION
 
-File: components/NotificationPartial.rhtml
+File: components/NotificationPartial.rs
 ```
 @partial
 struct NotificationProps {
@@ -72,7 +72,7 @@ When @partial is detected:
 
 ### C. NAMED PARTIALS IN PAGES
 
-File: pages/users.rhtml
+File: pages/users.rs
 ```
 // Named partial 1
 partial Stats(props: &PartialProps<()>) {
@@ -114,7 +114,7 @@ Access via:
 
 ### D. AUTO-PARTIAL FILES
 
-File: pages/partials/user-item.rhtml (NO WebPage component)
+File: pages/partials/user-item.rs (NO WebPage component)
 ```
 <!-- Partial: User list item (no Page component, just HTML) -->
 <div class="user-item p-4 border-b hover:bg-gray-50">
@@ -139,14 +139,14 @@ When no WebPage component is found:
 ### A. FILE-BASED ROUTING (rhtml-router/src/lib.rs)
 
 Router converts file paths to routes:
-- pages/index.rhtml           → /
-- pages/about.rhtml           → /about
-- pages/users/index.rhtml     → /users
-- pages/users/[id].rhtml      → /users/:id
-- pages/docs/[...slug].rhtml  → /docs/*slug
-- pages/posts/[id?].rhtml     → /posts/:id?
-- pages/_layout.rhtml         → / (layout, not a route)
-- pages/_error.rhtml          → / (error page, not a route)
+- pages/index.rs           → /
+- pages/about.rs           → /about
+- pages/users/index.rs     → /users
+- pages/users/[id].rs      → /users/:id
+- pages/docs/[...slug].rs  → /docs/*slug
+- pages/posts/[id?].rs     → /posts/:id?
+- pages/_layout.rs         → / (layout, not a route)
+- pages/_error.rs          → / (error page, not a route)
 
 ### B. ROUTE PRIORITY SYSTEM
 
@@ -381,11 +381,11 @@ watch_paths = ["pages", "components"]
 2. **@partial Annotation** ✓ IDENTIFIED
    - @partial struct annotation in components
    - Registered as /partials/{name} route
-   - Example: components/NotificationPartial.rhtml
+   - Example: components/NotificationPartial.rs
 
 3. **Auto-Partials** ✓ COMPLETE
    - Files without WebPage component are auto-partials
-   - Example: pages/partials/user-item.rhtml
+   - Example: pages/partials/user-item.rs
    - Rendered without layout automatically
 
 4. **Directives** ✓ IMPLEMENTED
@@ -406,7 +406,7 @@ watch_paths = ["pages", "components"]
    - Logs which templates were reloaded
 
 7. **Layout System** ✓ WORKING
-   - _layout.rhtml files as layouts
+   - _layout.rs files as layouts
    - Section-specific layouts
    - slots { ... } for slot definitions
    - @layout(false) to skip layout
@@ -458,7 +458,7 @@ TemplateLoader responsibilities:
 
 Key methods:
 - load_all()                  # Load templates and components
-- load_directory()            # Recursively load .rhtml files
+- load_directory()            # Recursively load .rs files
 - load_template()             # Load single template
 - load_component()            # Load single component
 - reload_template()           # Hot reload support

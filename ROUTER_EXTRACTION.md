@@ -47,8 +47,8 @@ All router features work exactly as before:
 ✅ Dynamic routes (`/users/:id`)
 ✅ Catch-all routes (`/docs/*slug`)
 ✅ Optional parameters (`/posts/:id?`)
-✅ Layout support (`_layout.rhtml`)
-✅ Error pages (`_error.rhtml`)
+✅ Layout support (`_layout.rs`)
+✅ Error pages (`_error.rs`)
 ✅ Case-insensitive routing
 ✅ Priority-based matching
 
@@ -86,7 +86,7 @@ All router features work exactly as before:
 use rhtml_router::{Router, Route};
 
 let mut router = Router::new();
-router.add_route(Route::from_path("pages/users/[id].rhtml", "pages"));
+router.add_route(Route::from_path("pages/users/[id].rs", "pages"));
 router.sort_routes();
 
 let result = router.match_route("/users/42").unwrap();

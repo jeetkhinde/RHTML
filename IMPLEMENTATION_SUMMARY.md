@@ -186,7 +186,7 @@ hot_reload = true
 
 ## 🎨 New Demo Page
 
-**File:** `pages/request-demo.rhtml`
+**File:** `pages/request-demo.rs`
 
 Features demonstrated:
 - Query parameter extraction and display
@@ -231,8 +231,8 @@ urlencoding = "2.1"  # For form data parsing
 6. `src/template_loader.rs` - UPDATED (Config support)
 7. `src/parser/expression.rs` - UPDATED (Object value type)
 8. `Cargo.toml` - UPDATED (Dependencies)
-9. `pages/request-demo.rhtml` - NEW (Demo page)
-10. `pages/index.rhtml` - UPDATED (Link to demo)
+9. `pages/request-demo.rs` - NEW (Demo page)
+10. `pages/index.rs` - UPDATED (Link to demo)
 11. `rhtml.toml.example` - NEW (Example config)
 
 ### Architecture Changes
@@ -261,7 +261,7 @@ urlencoding = "2.1"  # For form data parsing
 ### Remaining Critical Priorities
 
 **1. Data Function Parsing**
-- Parse `data fn` from .rhtml files
+- Parse `data fn` from .rs files
 - Store function signatures
 - *Challenge:* Requires runtime Rust compilation or build-time codegen
 - *Recommendation:* Implement build-time code generation phase
@@ -331,7 +331,7 @@ Implemented the `@layout` decorator to provide **declarative, file-level control
 
 #### 1. @layout(false) - Disable Layout
 
-Place `@layout(false)` at the top of any `.rhtml` file to render without layout wrapper:
+Place `@layout(false)` at the top of any `.rs` file to render without layout wrapper:
 
 ```rhtml
 @layout(false)
@@ -411,7 +411,7 @@ Removes directive and optional newline from content before rendering.
 
 ### Example Files Created
 
-#### 1. pages/api.rhtml
+#### 1. pages/api.rs
 
 Simple @layout(false) example demonstrating custom HTML structure without layout wrapper.
 
@@ -422,7 +422,7 @@ Simple @layout(false) example demonstrating custom HTML structure without layout
 
 **URL:** `/api`
 
-#### 2. pages/products.rhtml
+#### 2. pages/products.rs
 
 Advanced example combining @layout(false) with named partials.
 
@@ -451,7 +451,7 @@ All scenarios tested and working:
 
 **Updated Files:**
 - `PARTIAL_RENDERING.md` - Added comprehensive @layout section with examples
-- `pages/index.rhtml` - Added links to new demo pages
+- `pages/index.rs` - Added links to new demo pages
 
 **Coverage:**
 - Syntax and usage
@@ -524,13 +524,13 @@ Developers from Rails, Next.js, Django will recognize decorator pattern.
    - Updated render_route_direct() with @layout handling
    - Custom layout loading logic
 
-4. **pages/api.rhtml** (NEW)
+4. **pages/api.rs** (NEW)
    - Simple @layout(false) example
 
-5. **pages/products.rhtml** (NEW)
+5. **pages/products.rs** (NEW)
    - @layout(false) + named partials combo
 
-6. **pages/index.rhtml** (+6 lines)
+6. **pages/index.rs** (+6 lines)
    - Added demo links
 
 7. **PARTIAL_RENDERING.md** (+224 lines)
@@ -573,7 +573,7 @@ Developers from Rails, Next.js, Django will recognize decorator pattern.
 
 1. **Custom Layout Support**
    ```rhtml
-   @layout("dashboard")  // Use pages/layouts/dashboard.rhtml
+   @layout("dashboard")  // Use pages/layouts/dashboard.rs
    ```
 
 2. **Layout Props**

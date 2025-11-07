@@ -1,5 +1,5 @@
 // File: rhtml-macro/src/layout_resolver.rs
-// Purpose: Find _layout.rhtml files for pages
+// Purpose: Find _layout.rs files for pages
 
 use std::path::{Path, PathBuf};
 
@@ -7,18 +7,18 @@ use std::path::{Path, PathBuf};
 ///
 /// Algorithm:
 /// 1. Start at page's directory
-/// 2. Look for _layout.rhtml in that directory
+/// 2. Look for _layout.rs in that directory
 /// 3. If not found, walk up to parent directory
 /// 4. Repeat until found or reach Pages/ directory
-/// 5. Use Pages/_layout.rhtml as fallback
+/// 5. Use Pages/_layout.rs as fallback
 /// 6. Error if fallback doesn't exist
 ///
 /// # Examples
 ///
 /// ```ignore
-/// // For pages/users/index.rhtml -> looks in:
-/// // 1. pages/users/_layout.rhtml
-/// // 2. pages/_layout.rhtml (fallback)
+/// // For pages/users/index.rs -> looks in:
+/// // 1. pages/users/_layout.rs
+/// // 2. pages/_layout.rs (fallback)
 /// ```
 pub fn find_layout_for_page(page_path: &Path) -> Result<PathBuf, String> {
     let mut current = page_path
@@ -27,7 +27,7 @@ pub fn find_layout_for_page(page_path: &Path) -> Result<PathBuf, String> {
 
     // Walk up the directory tree
     loop {
-        let layout_path = current.join("_layout.rhtml");
+        let layout_path = current.join("_layout.rs");
 
         if layout_path.exists() {
             return Ok(layout_path);
@@ -46,7 +46,7 @@ pub fn find_layout_for_page(page_path: &Path) -> Result<PathBuf, String> {
     }
 
     // Fallback to root layout
-    let root_layout = current.join("_layout.rhtml");
+    let root_layout = current.join("_layout.rs");
     if root_layout.exists() {
         Ok(root_layout)
     } else {
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_get_directory_key() {
-        let path = Path::new("/home/user/project/pages/_layout.rhtml");
+        let path = Path::new("/home/user/project/pages/_layout.rs");
         let key = get_directory_key(path);
         assert!(key.contains("pages"));
     }

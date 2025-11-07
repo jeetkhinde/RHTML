@@ -21,7 +21,7 @@
 ## 🔥 CRITICAL PRIORITIES (Sprint 1-2)
 
 ### Data Layer & Request Handling
-- [ ] **#1** Parse `data fn` functions from .rhtml files - ⏳ PENDING (Complex - requires codegen)
+- [ ] **#1** Parse `data fn` functions from .rs files - ⏳ PENDING (Complex - requires codegen)
 - [x] **#2** Extract query parameters in handlers (`query.get("filter")`) - ✅ DONE (Nov 1)
 - [x] **#3** Form handling (POST/PUT/DELETE methods) - ✅ DONE (Nov 1)
 - [ ] **#4** Typed `PageProps<T>` with actual data (replace `PageProps<()>`) - ⏳ PENDING (Depends on #1)
@@ -47,7 +47,7 @@
 - [ ] **#13** Catch-all routes `[...slug]`
 - [ ] **#14** Optional segments `[id?]`
 - [ ] **#15** Route conflict detection with warnings
-- [ ] **#16** Custom error pages (`pages/_error.rhtml`)
+- [ ] **#16** Custom error pages (`pages/_error.rs`)
 
 **Target:** Week 4-5
 **Status:** 🟡 Important for feature parity with modern frameworks
@@ -105,14 +105,14 @@
 - [x] Hierarchical nesting via directory structure
 - [x] Route priority system
 - [x] **Case-insensitive routing** (configurable via rhtml.toml) 🆕
-- [x] Layout inheritance (`_layout.rhtml`)
+- [x] Layout inheritance (`_layout.rs`)
 - [x] Outlet mechanism (`{slots.content}`)
 
 ### 2. File-based Routing (8 features)
 - [x] Auto-discovery of routes in `pages/`
 - [x] Nested directories → nested routes
-- [x] Dynamic route files (`[id].rhtml`)
-- [x] Layout inheritance (`_layout.rhtml`)
+- [x] Dynamic route files (`[id].rs`)
+- [x] Layout inheritance (`_layout.rs`)
 - [x] Runtime hot reload in dev mode
 - [x] **File-based partials** (files without Page component) 🆕
 - [x] **Named partials** (`partial Name() {}`) 🆕
@@ -185,14 +185,14 @@
 5. ~~**Hardcoded demo data**~~ ✅ FIXED - Request context provides dynamic data
 
 ### Remaining Blockers
-1. **`data fn` parsing** - Can't define data fetching functions in .rhtml files (requires build-time codegen)
+1. **`data fn` parsing** - Can't define data fetching functions in .rs files (requires build-time codegen)
 2. **Typed PageProps** - All pages use `PageProps<()>` instead of `PageProps<T>` (depends on data fn)
 
 ### Known Issues
 - ~~Route matching is case-sensitive~~ ✅ FIXED - Configurable via rhtml.toml
 - ~~`rhtml.toml` exists but is empty~~ ✅ FIXED - Full configuration system implemented
 - No middleware system - ⏳ PENDING (planned for v0.2.0)
-- Error pages are hardcoded HTML - ⏳ PENDING (need file-based _error.rhtml)
+- Error pages are hardcoded HTML - ⏳ PENDING (need file-based _error.rs)
 - Components can't pass structured props - ⏳ PENDING (need `r-props` directive)
 
 ### Design Decisions

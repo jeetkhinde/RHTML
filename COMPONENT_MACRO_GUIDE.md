@@ -12,7 +12,7 @@ RHTML supports two types of components:
 
 Public components are accessible via HTTP requests and can be fetched as standalone HTML fragments.
 
-**Usage in `.rhtml` Template Files:**
+**Usage in `.rs` Template Files:**
 
 ```rhtml
 partial analytics(props: &PartialProps<()>) {
@@ -45,7 +45,7 @@ GET /users?partial=analytics
 
 Private components are file-scoped and only accessible within the same template file. They're useful for breaking down complex UIs into smaller, manageable pieces.
 
-**Usage in `.rhtml` Template Files:**
+**Usage in `.rs` Template Files:**
 
 ```rhtml
 fn user_card(props: &PartialProps<UserData>) {
@@ -108,7 +108,7 @@ The component system is built on:
 
 ### Example 1: Simple Public Component
 
-**File: `pages/components/analytics.rhtml`**
+**File: `pages/components/analytics.rs`**
 
 ```rhtml
 // This is a public component - accessible at GET /users?partial=analytics
@@ -134,7 +134,7 @@ curl "http://localhost:3000/users?partial=analytics"
 
 ### Example 2: Private Component with Composition
 
-**File: `pages/dashboard.rhtml`**
+**File: `pages/dashboard.rs`**
 
 ```rhtml
 // Private component - used internally
@@ -163,7 +163,7 @@ WebPage {
 
 ### Example 3: Public Component with HTMX
 
-**File: `pages/notification.rhtml`**
+**File: `pages/notification.rs`**
 
 ```rhtml
 // Public component - can be swapped via HTMX
@@ -253,7 +253,7 @@ pub fn button(props: ButtonProps) {
 }
 ```
 
-**Or (in .rhtml files):**
+**Or (in .rs files):**
 ```rhtml
 partial button(props: &PartialProps<ButtonProps>) {
     <button class="btn">{props.data.text}</button>

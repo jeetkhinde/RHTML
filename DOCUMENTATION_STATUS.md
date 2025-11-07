@@ -43,14 +43,14 @@ This document provides a **complete, accurate status** of all RHTML features, cl
 - [x] Hierarchical nesting via directory structure
 - [x] Route priority system
 - [x] **Case-insensitive routing** (configurable via rhtml.toml) 🆕
-- [x] Layout inheritance (`_layout.rhtml`)
+- [x] Layout inheritance (`_layout.rs`)
 - [x] Outlet mechanism (`{slots.content}`)
 
 ### 2. File-Based Routing (8/12)
 - [x] Auto-discovery of routes in `pages/`
 - [x] Nested directories → nested routes
-- [x] Dynamic route files (`[id].rhtml`)
-- [x] Layout inheritance (`_layout.rhtml`)
+- [x] Dynamic route files (`[id].rs`)
+- [x] Layout inheritance (`_layout.rs`)
 - [x] Runtime hot reload in dev mode
 - [x] **File-based partials** (files without Page component) 🆕
 - [x] **Named partials** (`partial Name() {}`) 🆕
@@ -186,7 +186,7 @@ Full TOML-based configuration with sections:
 #### 7. Named Partials ✅
 **Commit:** 4a1cf8b
 **Status:** Fully implemented and tested
-**Files:** `src/renderer.rs`, `src/main.rs`, `pages/users.rhtml`
+**Files:** `src/renderer.rs`, `src/main.rs`, `pages/users.rs`
 
 ```rhtml
 <!-- Multiple partials in ONE file -->
@@ -217,7 +217,7 @@ WebPage(props: &PageProps<()>) {
 #### 8. @layout Decorator ✅
 **Commit:** 0408388
 **Status:** Fully implemented and tested
-**Files:** `src/renderer.rs`, `src/main.rs`, `pages/api.rhtml`, `pages/products.rhtml`
+**Files:** `src/renderer.rs`, `src/main.rs`, `pages/api.rs`, `pages/products.rs`
 
 ```rhtml
 @layout(false)  <!-- Disable layout -->
@@ -254,7 +254,7 @@ WebPage(props: &PageProps<()>) {
 Files without `WebPage()` component are automatically treated as partials:
 
 ```rhtml
-<!-- pages/partials/user-item.rhtml -->
+<!-- pages/partials/user-item.rs -->
 <!-- No Page component = automatic partial -->
 <div class="user-item">
     <h3>{query_name}</h3>
@@ -290,7 +290,7 @@ Template variables:
 ### High Priority (Next Sprint)
 
 #### Data Layer
-- [ ] **Parse `data fn` functions** from .rhtml files
+- [ ] **Parse `data fn` functions** from .rs files
   - Status: PENDING
   - Priority: 🔥🔥🔥 CRITICAL
   - Complexity: High (requires build-time codegen or runtime compilation)
@@ -329,19 +329,19 @@ Template variables:
 - [ ] **Catch-all routes** `[...slug]`
   - Status: PENDING
   - Priority: 🟡 MEDIUM
-  - Example: `pages/docs/[...slug].rhtml` → `/docs/path/to/page`
+  - Example: `pages/docs/[...slug].rs` → `/docs/path/to/page`
 
 - [ ] **Optional segments** `[id?]`
   - Status: PENDING
   - Priority: 🟢 LOW
-  - Example: `pages/users/[id?].rhtml`
+  - Example: `pages/users/[id?].rs`
 
 - [ ] **Route conflict detection** with warnings
   - Status: PENDING
   - Priority: 🟡 MEDIUM
   - Current: Routes sorted, but no warnings
 
-- [ ] **Custom error pages** (`pages/_error.rhtml`)
+- [ ] **Custom error pages** (`pages/_error.rs`)
   - Status: PENDING
   - Priority: 🟡 MEDIUM
   - Current: Hardcoded error pages

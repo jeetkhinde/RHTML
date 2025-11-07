@@ -287,7 +287,7 @@ async fn render_route(state: &AppState, route: &str, request_context: RequestCon
             return error_response(
                 500,
                 "Layout Not Found",
-                "Missing _layout.rhtml in pages directory",
+                "Missing _layout.rs in pages directory",
             );
         }
     };
@@ -432,7 +432,7 @@ async fn render_route_direct(
             return error_response(
                 500,
                 "Layout Not Found",
-                "Missing _layout.rhtml in pages directory",
+                "Missing _layout.rs in pages directory",
             );
         }
     };
@@ -668,7 +668,7 @@ fn setup_demo_data(
     }
 }
 
-/// Create a custom error response using _error.rhtml if available
+/// Create a custom error response using _error.rs if available
 async fn custom_error_response(
     state: &AppState,
     status: u16,

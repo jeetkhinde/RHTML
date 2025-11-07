@@ -209,9 +209,9 @@ Your project structure:
 ```
 my-project/
 ├── app/
-│   ├── page.rhtml        (instead of pages/index.rhtml)
+│   ├── page.rs        (instead of pages/index.rs)
 │   └── users/
-│       └── page.rhtml
+│       └── page.rs
 └── components/
 ```
 
@@ -365,7 +365,7 @@ pages_dir = "pages"  # or "app"
 components_dir = "components"
 ```
 
-3. Convert `.tsx` files to `.rhtml` syntax
+3. Convert `.tsx` files to `.rs` syntax
 
 ### From Hugo
 
@@ -463,12 +463,12 @@ cargo run
 Some things are intentionally not configurable to keep RHTML simple:
 
 ### File Extensions
-- ✗ Template extension is always `.rhtml`
+- ✗ Template extension is always `.rs`
 - **Why:** Keeps tooling simple, editor support consistent
 
 ### Special Files
-- ✗ Layout files are always `_layout.rhtml`
-- ✗ Error pages are always `_error.rhtml`
+- ✗ Layout files are always `_layout.rs`
+- ✗ Error pages are always `_error.rs`
 - **Why:** Conventions make code predictable across projects
 
 ### Route Syntax

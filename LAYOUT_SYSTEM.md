@@ -45,14 +45,14 @@ Located in: `src/renderer.rs`
 Infrastructure for enhanced compile-time validation:
 
 - `layout_registry.rs` - Stores layout metadata
-- `layout_resolver.rs` - Finds `_layout.rhtml` files
+- `layout_resolver.rs` - Finds `_layout.rs` files
 - Currently not actively used but ready for future enhancements
 
 ## Syntax
 
 ### Defining Layouts
 
-**File**: `pages/_layout.rhtml`
+**File**: `pages/_layout.rs`
 
 ```rust
 // Define the slot contract
@@ -80,7 +80,7 @@ pub fn layout(slots: LayoutSlots) {
 
 ### Using Layouts in Pages
 
-**File**: `pages/home.rhtml`
+**File**: `pages/home.rs`
 
 ```rust
 slot! {
@@ -103,7 +103,7 @@ pub fn page(props: PageProps) {
 
 1. **Slot Macro Expansion**: `slot!` macro expands to internal `__rhtml_slots__` marker
 2. **Parser Processing**: RHTML parser recognizes the slots marker
-3. **Layout Resolution**: System finds appropriate `_layout.rhtml` file
+3. **Layout Resolution**: System finds appropriate `_layout.rs` file
 4. **Rendering**: Layout is rendered with slot values, page content fills `content` slot
 
 ### Key Features
@@ -117,19 +117,19 @@ pub fn page(props: PageProps) {
 
 ```
 pages/
-├── _layout.rhtml          # Root layout
-├── index.rhtml            # Uses slot! for slot values
-├── about.rhtml
+├── _layout.rs          # Root layout
+├── index.rs            # Uses slot! for slot values
+├── about.rs
 │
 ├── users/
-│   ├── _layout.rhtml      # Users-specific layout
-│   ├── index.rhtml        # Uses users layout
-│   ├── new.rhtml
-│   └── [id].rhtml
+│   ├── _layout.rs      # Users-specific layout
+│   ├── index.rs        # Uses users layout
+│   ├── new.rs
+│   └── [id].rs
 │
 └── test/
-    ├── _layout.rhtml      # Test layout example
-    └── index.rhtml        # Test page example
+    ├── _layout.rs      # Test layout example
+    └── index.rs        # Test page example
 ```
 
 ## Implementation Files
@@ -148,10 +148,10 @@ pages/
    - Slot value extraction and processing
 
 3. **Example Files**
-   - `pages/_layout.rhtml` - Root layout with new syntax
-   - `pages/users/_layout.rhtml` - Nested layout example
-   - `pages/test/_layout.rhtml` - Example layout
-   - `pages/test/index.rhtml` - Example page with `slot!`
+   - `pages/_layout.rs` - Root layout with new syntax
+   - `pages/users/_layout.rs` - Nested layout example
+   - `pages/test/_layout.rs` - Example layout
+   - `pages/test/index.rs` - Example page with `slot!`
 
 ## Testing
 

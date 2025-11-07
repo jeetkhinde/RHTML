@@ -17,7 +17,7 @@ RHTML automatically detects when to render partials using three methods:
 Files **without** a `WebPage()` component are automatically treated as partials:
 
 ```rhtml
-<!-- pages/partials/user-item.rhtml -->
+<!-- pages/partials/user-item.rs -->
 <!-- No WebPage() = automatic partial -->
 <div class="user-item p-4 border-b">
     <h3 class="font-semibold">{query_name}</h3>
@@ -87,14 +87,14 @@ WebPage(props: &PageProps<()>) {
 
 ### Overview
 
-The `@layout` decorator gives you **declarative control** over layout rendering at the file level. Place it at the top of your `.rhtml` file to specify layout behavior.
+The `@layout` decorator gives you **declarative control** over layout rendering at the file level. Place it at the top of your `.rs` file to specify layout behavior.
 
 ### Syntax
 
 ```rhtml
 @layout(false)         // No layout
 @layout("custom")      // Use specific layout (future feature)
-// No decorator         // Use default _layout.rhtml
+// No decorator         // Use default _layout.rs
 ```
 
 ### @layout(false) - No Layout
@@ -122,7 +122,7 @@ WebPage(props: &PageProps<()>) {
 }
 ```
 
-**Result:** Page renders without `_layout.rhtml` wrapper.
+**Result:** Page renders without `_layout.rs` wrapper.
 
 ### Use Cases for @layout(false)
 
@@ -258,7 +258,7 @@ WebPage(props: &PageProps<()>) {
 
 **Example 1: API Endpoint**
 ```rhtml
-<!-- pages/api.rhtml -->
+<!-- pages/api.rs -->
 @layout(false)
 
 WebPage(props: &PageProps<()>) {
@@ -281,7 +281,7 @@ WebPage(props: &PageProps<()>) {
 
 **Example 2: Combined with Partials**
 ```rhtml
-<!-- pages/dashboard.rhtml -->
+<!-- pages/dashboard.rs -->
 @layout(false)
 
 partial Metrics(...) { /* KPIs */ }
@@ -314,23 +314,23 @@ For better organization, RHTML supports **named partials** - multiple partials d
 pages/
   users/
     partials/
-      stats.rhtml
-      active-users.rhtml
-      recent-activity.rhtml
-    index.rhtml
+      stats.rs
+      active-users.rs
+      recent-activity.rs
+    index.rs
 ```
 Too many files, domain logic scattered!
 
 **Solution with Named Partials:**
 ```
 pages/
-  users.rhtml  ← All user-related partials in ONE file!
+  users.rs  ← All user-related partials in ONE file!
 ```
 
 ### Defining Named Partials
 
 ```rhtml
-<!-- pages/users.rhtml -->
+<!-- pages/users.rs -->
 
 // Named partial: Stats
 // Access: /users?partial=Stats
@@ -451,7 +451,7 @@ Available partials: Stats, ActiveUsers, RecentActivity
 ### 1. Create a Partial File
 
 ```rhtml
-<!-- pages/partials/todo-item.rhtml -->
+<!-- pages/partials/todo-item.rs -->
 <li class="flex items-center gap-2 p-2">
     <input type="checkbox" r-attr:checked="{query_completed}" />
     <span r-class:line-through="{query_completed}">
@@ -470,7 +470,7 @@ Available partials: Stats, ActiveUsers, RecentActivity
 ### 2. Create the Full Page
 
 ```rhtml
-<!-- pages/todos.rhtml -->
+<!-- pages/todos.rs -->
 slots {
     title: "Todo List"
 }
@@ -511,7 +511,7 @@ WebPage(props: &PageProps<()>) {
 ### 3. Handle Form Submission
 
 ```rhtml
-<!-- pages/todos.rhtml - Add this at the end -->
+<!-- pages/todos.rs - Add this at the end -->
 
 <!-- Handle POST request - return partial only -->
 <div r-if="is_post">
@@ -640,35 +640,35 @@ curl -H "X-Partial: true" http://localhost:3000/users
 
 ```
 pages/
-├── _layout.rhtml
-├── index.rhtml
-├── users.rhtml
+├── _layout.rs
+├── index.rs
+├── users.rs
 └── partials/
-    ├── user-item.rhtml
-    ├── user-form.rhtml
-    └── user-stats.rhtml
+    ├── user-item.rs
+    ├── user-form.rs
+    └── user-stats.rs
 ```
 
 ### 2. Use Descriptive Names
 
 ```
-✅ Good: partials/user-item.rhtml
-✅ Good: partials/todo-form.rhtml
-❌ Bad: partials/temp.rhtml
-❌ Bad: partials/fragment1.rhtml
+✅ Good: partials/user-item.rs
+✅ Good: partials/todo-form.rs
+❌ Bad: partials/temp.rs
+❌ Bad: partials/fragment1.rs
 ```
 
 ### 3. Keep Partials Small and Focused
 
 ```rhtml
 <!-- ✅ Good: Single responsibility -->
-<!-- partials/user-avatar.rhtml -->
+<!-- partials/user-avatar.rs -->
 <div class="avatar">
     <img src="{query_avatar}" alt="{query_name}" />
 </div>
 
 <!-- ❌ Bad: Too much logic -->
-<!-- partials/dashboard.rhtml -->
+<!-- partials/dashboard.rs -->
 <div>
     <!-- 500 lines of mixed content -->
 </div>
@@ -690,7 +690,7 @@ pages/
 ### 5. Handle Errors Gracefully
 
 ```rhtml
-<!-- pages/partials/user-item.rhtml -->
+<!-- pages/partials/user-item.rs -->
 <div r-if="query_name">
     <h3>{query_name}</h3>
     <p>{query_email}</p>
@@ -713,7 +713,7 @@ pages/
 
 **Before:**
 ```rhtml
-<!-- pages/user-card.rhtml -->
+<!-- pages/user-card.rs -->
 slots { title: "User Card" }
 
 WebPage(props: &PageProps<()>) {
@@ -725,7 +725,7 @@ WebPage(props: &PageProps<()>) {
 
 **After:**
 ```rhtml
-<!-- pages/partials/user-card.rhtml -->
+<!-- pages/partials/user-card.rs -->
 <!-- Remove slots and Page component -->
 <div class="user-card">
     <h3>{query_name}</h3>
