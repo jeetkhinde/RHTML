@@ -108,7 +108,7 @@ hot_reload = true
 partial Stats(...) { <div>Statistics</div> }
 partial ActiveUsers(...) { <div>Users</div> }
 
-cmp Page(...) {
+WebPage(...) {
     <button hx-get="/users?partial=Stats">Load</button>
 }
 ```
@@ -122,7 +122,7 @@ cmp Page(...) {
 ```rhtml
 @layout(false)
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <html>
         <!-- Full control over HTML -->

@@ -61,7 +61,7 @@ This document provides a **complete, accurate status** of all RHTML features, cl
 - [x] **Form data handling** (POST/PUT/DELETE) 🆕
 - [x] **Request context access** (headers, cookies, method) 🆕
 - [x] **Content negotiation** (HTML/JSON based on Accept header) 🆕
-- [x] Template rendering with `cmp Page() {}`
+- [x] Template rendering with `WebPage() {}`
 - [x] Context passing to templates
 
 ### 4. SSR Engine (7/11)
@@ -198,7 +198,7 @@ partial ActiveUsers(props: &PartialProps<()>) {
     <div>Active Users List</div>
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <button hx-get="/users?partial=Stats">Load Stats</button>
 }
 ```
@@ -222,7 +222,7 @@ cmp Page(props: &PageProps<()>) {
 ```rhtml
 @layout(false)  <!-- Disable layout -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html>
     <head><title>Custom Page</title></head>
@@ -251,7 +251,7 @@ cmp Page(props: &PageProps<()>) {
 **Status:** Fully implemented and tested
 **Files:** `src/main.rs`
 
-Files without `cmp Page()` component are automatically treated as partials:
+Files without `WebPage()` component are automatically treated as partials:
 
 ```rhtml
 <!-- pages/partials/user-item.rhtml -->

@@ -14,11 +14,11 @@ RHTML automatically detects when to render partials using three methods:
 
 ### 1. Automatic Detection (No Page Component)
 
-Files **without** a `cmp Page()` component are automatically treated as partials:
+Files **without** a `WebPage()` component are automatically treated as partials:
 
 ```rhtml
 <!-- pages/partials/user-item.rhtml -->
-<!-- No cmp Page() = automatic partial -->
+<!-- No WebPage() = automatic partial -->
 <div class="user-item p-4 border-b">
     <h3 class="font-semibold">{query_name}</h3>
     <p class="text-sm text-gray-600">{query_email}</p>
@@ -61,7 +61,7 @@ curl -H "X-Partial: true" http://localhost:3000/users
 Access partial/HTMX information in your templates:
 
 ```rhtml
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div>
     <p r-if="is_htmx">This is an HTMX request!</p>
     <p r-if="wants_partial">Rendering as partial</p>
@@ -104,7 +104,7 @@ Explicitly disable layout wrapping for the entire file:
 ```rhtml
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -130,7 +130,7 @@ cmp Page(props: &PageProps<()>) {
 ```rhtml
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div class="api-response">
         <h2>User Data</h2>
         <p>Name: John Doe</p>
@@ -142,7 +142,7 @@ cmp Page(props: &PageProps<()>) {
 ```rhtml
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html>
     <head>
@@ -163,7 +163,7 @@ cmp Page(props: &PageProps<()>) {
 ```rhtml
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html lang="en" data-theme="dark">
     <head>
@@ -202,7 +202,7 @@ partial ProductList(props: &PartialProps<()>) {
 }
 
 // Full page component (no layout)
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html>
     <head>
@@ -261,7 +261,7 @@ cmp Page(props: &PageProps<()>) {
 <!-- pages/api.rhtml -->
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html>
     <head>
@@ -287,7 +287,7 @@ cmp Page(props: &PageProps<()>) {
 partial Metrics(...) { /* KPIs */ }
 partial Charts(...) { /* Analytics */ }
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <html>
     <head><title>Dashboard</title></head>
@@ -363,7 +363,7 @@ partial ActiveUsers(props: &PartialProps<()>) {
 }
 
 // Optional: Full page component
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div class="container mx-auto p-8">
         <h1 class="text-4xl font-bold mb-8">User Dashboard</h1>
 
@@ -475,7 +475,7 @@ slots {
     title: "Todo List"
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div class="container mx-auto p-8">
     <h1 class="text-3xl font-bold mb-6">My Todos</h1>
 
@@ -535,7 +535,7 @@ cmp Page(props: &PageProps<()>) {
 ### Conditional Rendering Based on Request Type
 
 ```rhtml
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <!-- Full page for regular requests -->
   <div r-if="!is_htmx">
     <header>
@@ -716,7 +716,7 @@ pages/
 <!-- pages/user-card.rhtml -->
 slots { title: "User Card" }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div class="user-card">
     <h3>{query_name}</h3>
   </div>
@@ -736,8 +736,8 @@ cmp Page(props: &PageProps<()>) {
 
 ### Issue: Partial renders with layout
 
-**Cause:** File has a `cmp Page()` component
-**Solution:** Remove the `cmp Page()` component or use `?partial=true`
+**Cause:** File has a `WebPage()` component
+**Solution:** Remove the `WebPage()` component or use `?partial=true`
 
 ### Issue: HTMX request not detected
 

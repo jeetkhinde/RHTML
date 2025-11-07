@@ -3,7 +3,8 @@ slots {
   footer: "Dynamic Route Parameter Demo"
 }
 
-cmp Page(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="container">
     <h1 class="page-title">
       User Profile #{id}

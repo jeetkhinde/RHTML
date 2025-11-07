@@ -3,7 +3,8 @@ slots {
   footer: "Static Route Priority Demo"
 }
 
-cmp Page(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="container">
     <h1 class="page-title">
       Create New User ✨

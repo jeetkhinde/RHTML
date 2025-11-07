@@ -3,7 +3,8 @@ title: "About - RHTML App",
 footer: "Learn more about RHTML"
 }
 
-cmp Page(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="max-w-4xl mx-auto">
     <h1 class="text-4xl font-bold text-gray-800 mb-6">
       About RHTML

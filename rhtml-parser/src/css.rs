@@ -163,7 +163,7 @@ impl CssParser {
 
     /// Process RHTML content and return (content without CSS, scoped CSS, partials)
     pub fn process_template(content: &str) -> (String, Option<ScopedCss>, Vec<String>) {
-        // First, convert function components to cmp syntax
+        // First, process function components to standard syntax
         let processed = crate::function_component::FunctionComponentParser::process_content(content);
         let content = processed.content;
         let partials = processed.partials;

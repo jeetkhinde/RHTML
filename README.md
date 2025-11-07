@@ -112,7 +112,7 @@ css layout {
 
 ### Page Files (`*.rhtml`)
 
-Pages define routes and their content.
+Pages define routes and their content. RHTML supports multiple syntaxes - use **#[webpage]** for a Rust-native feel:
 
 ```rhtml
 <!-- pages/users/index.rhtml -->
@@ -122,13 +122,14 @@ slots {
   footer: "User Management"
 }
 
-cmp Page(props: &PageProps<()>) {
+#[webpage]
+pub fn users(props: UsersProps) {
   <div class="container mx-auto p-4">
     <h1 class="text-3xl font-bold mb-6">Users</h1>
 
     <!-- Demo: Eventually this will use data from data fn -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <div r-for="(index, item) in users">
+      <div r-for="(index, item) in props.users">
         <div class="card p-4 border rounded">
           <h3>User #{index}</h3>
           <p>{item}</p>
@@ -144,6 +145,8 @@ css Page {
   }
 }
 ```
+
+**The `#[webpage]` attribute** is the ONLY way to define pages in RHTML - Rust-native syntax with better IDE support!
 
 ---
 
@@ -202,7 +205,7 @@ partial ActiveUsers(props: &PartialProps<()>) {
   <div>Active Users List</div>
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <button hx-get="/users?partial=Stats">Load Stats</button>
 }
 ```
@@ -224,7 +227,7 @@ Control layout rendering declaratively:
 ```rhtml
 @layout(false)  <!-- Disable layout for this page -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <!DOCTYPE html>
   <html>
   <head><title>Custom Page</title></head>
@@ -345,7 +348,7 @@ Use bracket notation for dynamic segments:
 ```rhtml
 <!-- pages/users/[id].rhtml -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div>
     <h1>User Profile #{id}</h1>
     <p>Viewing user: {id}</p>
@@ -459,7 +462,7 @@ See [TODO.md](TODO.md) for detailed feature tracking.
 ```rhtml
 <!-- pages/todos.rhtml -->
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
   <div class="max-w-2xl mx-auto p-4">
     <h1>Todo List</h1>
 

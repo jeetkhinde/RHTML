@@ -199,7 +199,7 @@ partial ActiveUsers(props: &PartialProps<()>) {
 }
 
 // Optional: Full page component
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div class="container mx-auto p-8">
         <!-- Page content with HTMX buttons -->
         <button
@@ -292,7 +292,7 @@ partial Metrics(...) { /* KPI cards */ }
 partial Charts(...) { /* Analytics charts */ }
 partial Activity(...) { /* Recent activity */ }
 
-cmp Page(...) {
+WebPage(...) {
     <div id="metrics" hx-get="/dashboard?partial=Metrics" hx-trigger="load"></div>
     <div id="charts" hx-get="/dashboard?partial=Charts" hx-trigger="load"></div>
     <div id="activity" hx-get="/dashboard?partial=Activity" hx-trigger="load"></div>
@@ -306,7 +306,7 @@ partial Bio(...) { /* User bio */ }
 partial Posts(...) { /* User posts */ }
 partial Settings(...) { /* User settings */ }
 
-cmp Page(...) {
+WebPage(...) {
     <div class="tabs">
         <button hx-get="/profile?partial=Bio" hx-target="#content">Bio</button>
         <button hx-get="/profile?partial=Posts" hx-target="#content">Posts</button>

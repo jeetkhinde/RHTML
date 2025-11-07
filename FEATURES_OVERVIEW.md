@@ -111,7 +111,7 @@ pages/
 **Example:**
 ```rhtml
 <!-- pages/users/[id].rhtml -->
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div>
         <h1>User ID: {param_id}</h1>
         <p>Viewing user details...</p>
@@ -155,7 +155,7 @@ partial ActiveUsers(props: &PartialProps<()>) {
     <div>Active Users List</div>
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div>
         <button hx-get="/users?partial=Stats">Load Stats</button>
     </div>
@@ -190,7 +190,7 @@ cmp Page(props: &PageProps<()>) {
 ```rhtml
 @layout(false)
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <!DOCTYPE html>
     <html>
     <head>
@@ -217,7 +217,7 @@ cmp Page(props: &PageProps<()>) {
 partial ProductCard(...) { }
 partial ProductList(...) { }
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <!-- Custom HTML + dynamic partials -->
 }
@@ -236,7 +236,7 @@ cmp Page(...) {
 **Full request data available in templates:**
 
 ```rhtml
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div>
         <!-- HTTP Method -->
         <p>Method: {request_method}</p>
@@ -298,7 +298,7 @@ curl http://localhost:3000/users?api=true
 
 **In Template:**
 ```rhtml
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div>
         <!-- HTML rendering logic -->
     </div>
@@ -394,7 +394,7 @@ partial Activity(...) { }
 ```rhtml
 @layout(false)
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <!-- Full control -->
 }
@@ -460,7 +460,7 @@ slots {
     title: "About Us"
 }
 
-cmp Page(props: &PageProps<()>) {
+WebPage(props: &PageProps<()>) {
     <div class="container">
         <h1>About Us</h1>
         <p>Content here...</p>
@@ -484,7 +484,7 @@ partial Charts(...) {
     <div class="charts">Analytics</div>
 }
 
-cmp Page(...) {
+WebPage(...) {
     <div class="dashboard">
         <div id="metrics"
              hx-get="/dashboard?partial=Metrics"
@@ -507,7 +507,7 @@ cmp Page(...) {
 <!-- pages/api/users.rhtml -->
 @layout(false)
 
-cmp Page(...) {
+WebPage(...) {
     <div class="users-list">
         <div class="user">John Doe</div>
         <div class="user">Jane Smith</div>
@@ -525,7 +525,7 @@ cmp Page(...) {
 <!-- pages/landing.rhtml -->
 @layout(false)
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <html lang="en" data-theme="dark">
     <head>
@@ -563,7 +563,7 @@ partial ProductList(...) {
     </div>
 }
 
-cmp Page(...) {
+WebPage(...) {
     <!DOCTYPE html>
     <html>
     <head>

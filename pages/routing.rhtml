@@ -3,7 +3,8 @@ slots {
   footer: "RHTML Feature #7 Demo"
 }
 
-cmp Page(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="container">
     <h1 class="page-title">
       File-based Routing 🛣️
