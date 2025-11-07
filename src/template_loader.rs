@@ -172,8 +172,8 @@ impl TemplateLoader {
             if path.is_dir() {
                 // Recursively load subdirectories
                 self.load_directory(&path)?;
-            } else if path.extension().and_then(|s| s.to_str()) == Some("rhtml") {
-                // Load .rhtml files
+            } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
+                // Load .rs files
                 self.load_template(&path)?;
             }
         }
@@ -248,7 +248,7 @@ impl TemplateLoader {
         Ok(())
     }
 
-    /// Convert file path to route (e.g., pages/index.rhtml -> "/")
+    /// Convert file path to route (e.g., pages/index.rs -> "/")
     fn path_to_route(&self, path: &Path) -> String {
         let relative = path.strip_prefix(&self.pages_dir).unwrap_or(path);
 
@@ -450,13 +450,13 @@ mod tests {
         let loader = TemplateLoader::new("pages");
 
         // Test cases
-        assert_eq!(loader.path_to_route(Path::new("pages/index.rhtml")), "/");
+        assert_eq!(loader.path_to_route(Path::new("pages/index.rs")), "/");
         assert_eq!(
-            loader.path_to_route(Path::new("pages/about.rhtml")),
+            loader.path_to_route(Path::new("pages/about.rs")),
             "/about"
         );
         assert_eq!(
-            loader.path_to_route(Path::new("pages/users/profile.rhtml")),
+            loader.path_to_route(Path::new("pages/users/profile.rs")),
             "/users/profile"
         );
     }

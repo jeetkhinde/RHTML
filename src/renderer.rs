@@ -815,7 +815,7 @@ impl Renderer {
     /// Supported formats:
     /// - @layout(false) -> No layout
     /// - @layout("custom") -> Use specific layout
-    /// - No directive -> Default behavior (use _layout.rhtml)
+    /// - No directive -> Default behavior (use _layout.rs)
     pub fn parse_layout_directive(&self, content: &str) -> Option<LayoutDirective> {
         // Pattern: @layout(false) or @layout("name") at the START of the file
         // Use ^ to match only at the beginning, with optional whitespace

@@ -8,7 +8,7 @@ RHTML now supports three powerful routing patterns:
 
 1. **Catch-all routes** `[...slug]` - Match multiple path segments
 2. **Optional parameters** `[id?]` - Make route segments optional
-3. **Custom error pages** `_error.rhtml` - Beautiful custom error handling
+3. **Custom error pages** `_error.rs` - Beautiful custom error handling
 
 ## 1. Catch-All Routes `[...slug]`
 
@@ -17,7 +17,7 @@ Catch-all routes allow you to match any number of path segments after a certain 
 ### File Naming Convention
 
 ```
-pages/docs/[...slug].rhtml
+pages/docs/[...slug].rs
 ```
 
 ### What It Matches
@@ -54,9 +54,9 @@ pages/docs/[...slug].rhtml
 Catch-all routes have the **lowest priority** (priority = 1000+). They will only match after all static and dynamic routes have been tried.
 
 ```
-/docs/api.rhtml         → matches first (static)
-/docs/[category].rhtml  → matches second (dynamic)
-/docs/[...slug].rhtml   → matches last (catch-all)
+/docs/api.rs         → matches first (static)
+/docs/[category].rs  → matches second (dynamic)
+/docs/[...slug].rs   → matches last (catch-all)
 ```
 
 ## 2. Optional Parameters `[id?]`
@@ -66,7 +66,7 @@ Optional parameters allow a single route segment to be present or absent, and bo
 ### File Naming Convention
 
 ```
-pages/posts/[id?].rhtml
+pages/posts/[id?].rs
 ```
 
 ### What It Matches
@@ -106,9 +106,9 @@ pages/posts/[id?].rhtml
 Optional parameters have **higher priority** than required dynamic parameters but **lower priority** than static routes:
 
 ```
-/posts/new.rhtml     → priority 0 (static, highest)
-/posts/[id?].rhtml   → priority 3 (optional)
-/posts/[id].rhtml    → priority 4 (required dynamic)
+/posts/new.rs     → priority 0 (static, highest)
+/posts/[id?].rs   → priority 3 (optional)
+/posts/[id].rs    → priority 4 (required dynamic)
 ```
 
 ### Combining Optional Params with Static Routes
@@ -116,19 +116,19 @@ Optional parameters have **higher priority** than required dynamic parameters bu
 If you have both an optional parameter route and a static route, the static route will always match first:
 
 ```
-pages/posts/new.rhtml      → matches /posts/new
-pages/posts/[id?].rhtml    → matches /posts and /posts/123
+pages/posts/new.rs      → matches /posts/new
+pages/posts/[id?].rs    → matches /posts and /posts/123
 ```
 
-## 3. Custom Error Pages `_error.rhtml`
+## 3. Custom Error Pages `_error.rs`
 
 Create beautiful, branded error pages that match your application's design.
 
 ### File Locations
 
 ```
-pages/_error.rhtml          → Root error page (404, 500, etc.)
-pages/api/_error.rhtml      → Section-specific error page
+pages/_error.rs          → Root error page (404, 500, etc.)
+pages/api/_error.rs      → Section-specific error page
 ```
 
 ### Error Page Variables
@@ -163,14 +163,14 @@ Your error template has access to these variables:
 Create different error pages for different sections of your site:
 
 ```
-pages/_error.rhtml          → Default error page
-pages/api/_error.rhtml      → JSON error responses for /api/*
-pages/admin/_error.rhtml    → Admin-styled errors for /admin/*
+pages/_error.rs          → Default error page
+pages/api/_error.rs      → JSON error responses for /api/*
+pages/admin/_error.rs    → Admin-styled errors for /admin/*
 ```
 
 When an error occurs in `/api/users`, it will:
-1. Look for `pages/api/_error.rhtml`
-2. Fall back to `pages/_error.rhtml`
+1. Look for `pages/api/_error.rs`
+2. Fall back to `pages/_error.rs`
 3. Fall back to the built-in error page
 
 ### Fallback Behavior
@@ -212,53 +212,53 @@ Understanding route priority is crucial for predictable routing behavior:
 ```
 pages/
 ├── docs/
-│   ├── index.rhtml              → /docs
-│   ├── api.rhtml                → /docs/api (static, matches first)
-│   └── [...slug].rhtml          → /docs/* (catch-all)
+│   ├── index.rs              → /docs
+│   ├── api.rs                → /docs/api (static, matches first)
+│   └── [...slug].rs          → /docs/* (catch-all)
 ```
 
 **URL Matching:**
-- `/docs` → `index.rhtml`
-- `/docs/api` → `api.rhtml` (static wins)
-- `/docs/guide/intro` → `[...slug].rhtml` (slug = "guide/intro")
+- `/docs` → `index.rs`
+- `/docs/api` → `api.rs` (static wins)
+- `/docs/guide/intro` → `[...slug].rs` (slug = "guide/intro")
 
 ### Example 2: Blog with Optional Pagination
 
 ```
 pages/
 ├── blog/
-│   ├── [page?].rhtml            → /blog or /blog/2
-│   └── [slug].rhtml             → /blog/my-post-title
+│   ├── [page?].rs            → /blog or /blog/2
+│   └── [slug].rs             → /blog/my-post-title
 ```
 
 **URL Matching:**
-- `/blog` → `[page?].rhtml` (page is undefined)
+- `/blog` → `[page?].rs` (page is undefined)
 - `/blog/2` → Could match either! Use more specific routing:
 
 ```
 pages/
 ├── blog/
-│   ├── index.rhtml              → /blog (list)
+│   ├── index.rs              → /blog (list)
 │   ├── page/
-│   │   └── [num].rhtml          → /blog/page/2
-│   └── [slug].rhtml             → /blog/my-post-title
+│   │   └── [num].rs          → /blog/page/2
+│   └── [slug].rs             → /blog/my-post-title
 ```
 
 ### Example 3: E-commerce Site
 
 ```
 pages/
-├── _error.rhtml                 → Global errors
+├── _error.rs                 → Global errors
 ├── shop/
-│   ├── _error.rhtml            → Shop-specific errors
+│   ├── _error.rs            → Shop-specific errors
 │   ├── products/
-│   │   ├── new.rhtml           → /shop/products/new (static)
-│   │   ├── [id].rhtml          → /shop/products/123
+│   │   ├── new.rs           → /shop/products/new (static)
+│   │   ├── [id].rs          → /shop/products/123
 │   │   └── [id]/
-│   │       ├── edit.rhtml      → /shop/products/123/edit
-│   │       └── reviews.rhtml   → /shop/products/123/reviews
+│   │       ├── edit.rs      → /shop/products/123/edit
+│   │       └── reviews.rs   → /shop/products/123/reviews
 │   └── categories/
-│       └── [...path].rhtml     → /shop/categories/electronics/phones/iphone
+│       └── [...path].rs     → /shop/categories/electronics/phones/iphone
 ```
 
 ## Testing Your Routes
@@ -270,8 +270,8 @@ Use the router tests to verify your routing logic:
 fn test_my_routes() {
     let mut router = Router::new();
 
-    router.add_route(Route::from_path("pages/docs/[...slug].rhtml", "pages"));
-    router.add_route(Route::from_path("pages/posts/[id?].rhtml", "pages"));
+    router.add_route(Route::from_path("pages/docs/[...slug].rs", "pages"));
+    router.add_route(Route::from_path("pages/posts/[id?].rs", "pages"));
     router.sort_routes();
 
     // Test catch-all
@@ -315,7 +315,7 @@ For best performance:
 ### My error page isn't showing
 
 **Check:**
-- Is the file named exactly `_error.rhtml`?
+- Is the file named exactly `_error.rs`?
 - Is it in the correct directory?
 - Does your template have syntax errors?
 
@@ -325,7 +325,7 @@ If you're upgrading from an older version:
 
 1. **No Breaking Changes**: All existing routes continue to work
 2. **New Features**: Start adding optional params and catch-all routes
-3. **Error Pages**: Replace built-in errors with custom `_error.rhtml`
+3. **Error Pages**: Replace built-in errors with custom `_error.rs`
 4. **Test**: Run your test suite to verify routing behavior
 
 ## See Also

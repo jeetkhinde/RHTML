@@ -32,8 +32,8 @@ RHTML is a **Rust-first SSR framework** that combines:
 |---------|--------|-------------|
 | **File-Based Routing** | ✅ Complete | Automatic routes from pages/ directory |
 | **Nested Routing** | ✅ Complete | Support for users/:id, etc. |
-| **Dynamic Parameters** | ✅ Complete | Route params like [id].rhtml |
-| **Layout System** | ✅ Complete | Nested layouts with _layout.rhtml |
+| **Dynamic Parameters** | ✅ Complete | Route params like [id].rs |
+| **Layout System** | ✅ Complete | Nested layouts with _layout.rs |
 | **Component System** | ✅ Complete | Reusable components with props |
 | **Hot Reload** | ✅ Complete | Live updates during development |
 | **Template Directives** | ✅ Complete | r-if, r-for, r-match, etc. |
@@ -93,24 +93,24 @@ RHTML is a **Rust-first SSR framework** that combines:
 **How it works:**
 ```
 pages/
-  index.rhtml       → /
-  about.rhtml       → /about
+  index.rs       → /
+  about.rs       → /about
   users/
-    index.rhtml     → /users
-    [id].rhtml      → /users/:id
-    new.rhtml       → /users/new
+    index.rs     → /users
+    [id].rs      → /users/:id
+    new.rs       → /users/new
 ```
 
 **Features:**
 - Automatic route generation
 - Support for nested directories
-- Dynamic parameters via [name].rhtml
+- Dynamic parameters via [name].rs
 - Priority-based route matching
-- Section-specific layouts via _layout.rhtml
+- Section-specific layouts via _layout.rs
 
 **Example:**
 ```rhtml
-<!-- pages/users/[id].rhtml -->
+<!-- pages/users/[id].rs -->
 WebPage(props: &PageProps<()>) {
     <div>
         <h1>User ID: {param_id}</h1>
@@ -132,20 +132,20 @@ WebPage(props: &PageProps<()>) {
 pages/
   users/
     partials/
-      stats.rhtml
-      active-users.rhtml
-      recent-activity.rhtml
+      stats.rs
+      active-users.rs
+      recent-activity.rs
 ```
 
 **After:**
 ```
 pages/
-  users.rhtml  ← All user partials in ONE file
+  users.rs  ← All user partials in ONE file
 ```
 
 **Example:**
 ```rhtml
-<!-- pages/users.rhtml -->
+<!-- pages/users.rs -->
 
 partial Stats(props: &PartialProps<()>) {
     <div>User Statistics</div>
@@ -357,7 +357,7 @@ RHTML provides **four complementary approaches** for partial rendering:
 **When:** Reusable components without Page component
 
 ```rhtml
-<!-- pages/partials/user-item.rhtml -->
+<!-- pages/partials/user-item.rs -->
 <div class="user-item">
     <h3>{query_name}</h3>
     <p>{query_email}</p>
@@ -375,7 +375,7 @@ RHTML provides **four complementary approaches** for partial rendering:
 **When:** Multiple domain-specific fragments in one file
 
 ```rhtml
-<!-- pages/dashboard.rhtml -->
+<!-- pages/dashboard.rs -->
 partial Metrics(...) { }
 partial Charts(...) { }
 partial Activity(...) { }
@@ -455,7 +455,7 @@ curl -H "X-Partial: true" http://localhost:3000/about
 ### Pattern 1: Standard Page with Layout
 
 ```rhtml
-<!-- pages/about.rhtml -->
+<!-- pages/about.rs -->
 slots {
     title: "About Us"
 }
@@ -468,14 +468,14 @@ WebPage(props: &PageProps<()>) {
 }
 ```
 
-**Result:** Uses _layout.rhtml wrapper
+**Result:** Uses _layout.rs wrapper
 
 ---
 
 ### Pattern 2: HTMX Dashboard with Named Partials
 
 ```rhtml
-<!-- pages/dashboard.rhtml -->
+<!-- pages/dashboard.rs -->
 partial Metrics(...) {
     <div class="metrics">KPIs</div>
 }
@@ -504,7 +504,7 @@ WebPage(...) {
 ### Pattern 3: API Endpoint with No Layout
 
 ```rhtml
-<!-- pages/api/users.rhtml -->
+<!-- pages/api/users.rs -->
 @layout(false)
 
 WebPage(...) {
@@ -522,7 +522,7 @@ WebPage(...) {
 ### Pattern 4: Custom Document Structure
 
 ```rhtml
-<!-- pages/landing.rhtml -->
+<!-- pages/landing.rs -->
 @layout(false)
 
 WebPage(...) {
@@ -550,7 +550,7 @@ WebPage(...) {
 ### Pattern 5: Combined Power Pattern
 
 ```rhtml
-<!-- pages/products.rhtml -->
+<!-- pages/products.rs -->
 @layout(false)
 
 partial ProductCard(...) {
@@ -694,7 +694,7 @@ WebPage(...) {
 2. Run `cargo run` and visit `/`
 3. Explore `/demo`, `/loops`, `/components`
 4. Read PARTIAL_RENDERING.md sections 1-3
-5. Try modifying pages/index.rhtml
+5. Try modifying pages/index.rs
 
 ### Intermediate
 

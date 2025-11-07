@@ -77,7 +77,7 @@ This document provides a detailed analysis of RHTML's current implementation sta
 | # | Feature | Status | Location | Notes |
 |---|---------|--------|----------|-------|
 | 1.2.1 | Hierarchical nesting | ✅ **DONE** | `router.rs:53-78` | Directory structure |
-| 1.2.2 | Layout inheritance | ✅ **DONE** | `template_loader.rs:175-184` | `_layout.rhtml` |
+| 1.2.2 | Layout inheritance | ✅ **DONE** | `template_loader.rs:175-184` | `_layout.rs` |
 | 1.2.3 | Shared data | ⚠️ **PARTIAL** | `main.rs:247-298` | Hardcoded demo |
 | 1.2.4 | Outlet mechanism | ✅ **DONE** | `renderer.rs` | `{slots.content}` |
 | 1.2.5 | Route metadata | ❌ **TODO** | - | Middleware/guards |
@@ -110,7 +110,7 @@ This document provides a detailed analysis of RHTML's current implementation sta
 | 2.1.2 | Nested directories | ✅ **DONE** | `template_loader.rs:51-99` | Full support |
 | 2.1.3 | Dynamic `[id]` | ✅ **DONE** | `router.rs:69-74` | Bracket notation |
 | 2.1.4 | Catch-all `[...slug]` | ❌ **TODO** | - | Nice-to-have |
-| 2.1.5 | `_layout.rhtml` | ✅ **DONE** | `router.rs:46` | Works |
+| 2.1.5 | `_layout.rs` | ✅ **DONE** | `router.rs:46` | Works |
 | 2.1.6 | `_middleware.rs` | ❌ **TODO** | - | No middleware yet |
 | 2.1.7 | `_error.rs` | ❌ **TODO** | - | Custom error pages |
 | 2.1.8 | API route designation | ❌ **TODO** | - | Content negotiation |
@@ -118,15 +118,15 @@ This document provides a detailed analysis of RHTML's current implementation sta
 **File Structure Example:**
 ```
 pages/
-├── _layout.rhtml       ✅ Root layout
-├── index.rhtml         ✅ Homepage (/)
+├── _layout.rs       ✅ Root layout
+├── index.rs         ✅ Homepage (/)
 ├── users/
-│   ├── _layout.rhtml   ✅ Section layout
-│   ├── index.rhtml     ✅ /users
-│   ├── new.rhtml       ✅ /users/new (static)
-│   └── [id].rhtml      ✅ /users/:id (dynamic)
+│   ├── _layout.rs   ✅ Section layout
+│   ├── index.rs     ✅ /users
+│   ├── new.rs       ✅ /users/new (static)
+│   └── [id].rs      ✅ /users/:id (dynamic)
 └── docs/
-    └── [...slug].rhtml ❌ Catch-all (TODO)
+    └── [...slug].rs ❌ Catch-all (TODO)
 ```
 
 **Priority:** 🟡 Medium (Core works, extensions nice-to-have)
@@ -179,7 +179,7 @@ WebPage(props: &PageProps<()>) {
 
 **Desired Implementation:**
 ```rust
-// pages/users.rhtml - VISION (not implemented yet)
+// pages/users.rs - VISION (not implemented yet)
 data fn getUsers(query: &Query, ctx: &RequestContext) -> Result<Vec<User>, Error> {
     // ✅ Access query params
     let filter = query.get("filter");
@@ -207,7 +207,7 @@ WebPage(props: &PageProps<Result<Vec<User>, Error>>) {
 **Priority:** 🔥🔥🔥 **CRITICAL** - Blocks all real applications
 
 **Implementation Steps:**
-1. Parse `data fn` from .rhtml files
+1. Parse `data fn` from .rs files
 2. Create `RequestContext` struct
 3. Extract query params from URL
 4. Execute `data fn` before rendering
@@ -363,7 +363,7 @@ WebPage(props: &PageProps<Result<Vec<User>, Error>>) {
 
 **Vision:**
 ```rhtml
-<!-- pages/users/index.rhtml -->
+<!-- pages/users/index.rs -->
 
 data fn getUsers(query: &Query, ctx: &RequestContext) -> Result<Vec<User>, Error> {
     // ✅ Auth in one place
@@ -432,7 +432,7 @@ async fn template_handler(
 
 **Goal:** Enable real data fetching
 
-- [ ] Parse `data fn` from .rhtml
+- [ ] Parse `data fn` from .rs
 - [ ] Extract query parameters
 - [ ] Type `PageProps<T>`
 - [ ] Form handling (POST/PUT/DELETE)

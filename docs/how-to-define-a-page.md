@@ -4,34 +4,34 @@ Pages in RHTML are the fundamental building blocks for creating routes in your a
 
 ## Page File Structure
 
-In RHTML, pages are defined using `.rhtml` files in the `pages/` directory. The file structure determines your URL routing:
+In RHTML, pages are defined using `.rs` files in the `pages/` directory. The file structure determines your URL routing:
 
-### Preferred Structure: `page.rhtml`
+### Preferred Structure: `page.rs`
 
-The **recommended way** to define routes is using `page.rhtml` files:
+The **recommended way** to define routes is using `page.rs` files:
 
 ```
 pages/
 ├── users/
-│   └── page.rhtml       → /users
+│   └── page.rs       → /users
 ├── products/
-│   └── page.rhtml       → /products
+│   └── page.rs       → /products
 └── about/
-    └── page.rhtml       → /about
+    └── page.rs       → /about
 ```
 
 ### Alternative Structure: Named Files
 
-You can also use named `.rhtml` files:
+You can also use named `.rs` files:
 
 ```
 pages/
-├── users.rhtml          → /users
-├── products.rhtml       → /products
-└── about.rhtml          → /about
+├── users.rs          → /users
+├── products.rs       → /products
+└── about.rs          → /about
 ```
 
-Both approaches work, but **`page.rhtml` is preferred** for consistency and clarity.
+Both approaches work, but **`page.rs` is preferred** for consistency and clarity.
 
 ## Defining Pages: #[webpage] Attribute
 
@@ -72,7 +72,7 @@ pub fn users(props: UsersProps) { ... }  ✅ Custom props type
 
 Here's a complete example using the recommended **#[webpage]** syntax:
 
-**File: `pages/users/page.rhtml`**
+**File: `pages/users/page.rs`**
 
 ```rhtml
 slots {
@@ -111,7 +111,7 @@ slots {
 }
 ```
 
-These values can be accessed in your `_layout.rhtml` file.
+These values can be accessed in your `_layout.rs` file.
 
 ### 2. WebPage Component (Required)
 
@@ -135,7 +135,7 @@ RHTML supports dynamic route parameters:
 
 ### Single Parameter
 
-**File: `pages/users/[id]/page.rhtml`**
+**File: `pages/users/[id]/page.rs`**
 
 ```rhtml
 WebPage(props: &PageProps<()>) {
@@ -150,7 +150,7 @@ WebPage(props: &PageProps<()>) {
 
 ### Optional Parameter
 
-**File: `pages/posts/[id?]/page.rhtml`**
+**File: `pages/posts/[id?]/page.rs`**
 
 ```rhtml
 WebPage(props: &PageProps<()>) {
@@ -169,7 +169,7 @@ WebPage(props: &PageProps<()>) {
 
 ### Catch-All Routes
 
-**File: `pages/docs/[...slug]/page.rhtml`**
+**File: `pages/docs/[...slug]/page.rs`**
 
 ```rhtml
 WebPage(props: &PageProps<()>) {
@@ -186,11 +186,11 @@ WebPage(props: &PageProps<()>) {
 
 ## Special Files
 
-### Layout Files: `_layout.rhtml`
+### Layout Files: `_layout.rs`
 
 Layout files wrap your pages with common UI elements:
 
-**File: `pages/_layout.rhtml`**
+**File: `pages/_layout.rs`**
 
 ```rhtml
 <!DOCTYPE html>
@@ -214,13 +214,13 @@ Layout files wrap your pages with common UI elements:
 </html>
 ```
 
-Layouts are hierarchical - each subdirectory can have its own `_layout.rhtml`.
+Layouts are hierarchical - each subdirectory can have its own `_layout.rs`.
 
-### Error Pages: `_error.rhtml`
+### Error Pages: `_error.rs`
 
 Error pages handle 404 and other errors:
 
-**File: `pages/_error.rhtml`**
+**File: `pages/_error.rs`**
 
 ```rhtml
 WebPage(props: &PageProps<()>) {
@@ -277,7 +277,7 @@ WebPage(props: &PageProps<()>) {
 
 Files without a `WebPage` component are automatically treated as partials:
 
-**File: `pages/partials/user-card.rhtml`**
+**File: `pages/partials/user-card.rs`**
 
 ```rhtml
 <!-- No WebPage component = automatic partial -->
@@ -317,7 +317,7 @@ Access named partials via: `?partial=Header` or `?partial=Footer`
 
 ## Best Practices
 
-1. **Use `page.rhtml` for consistency**: Prefer `pages/users/page.rhtml` over `pages/users.rhtml`
+1. **Use `page.rs` for consistency**: Prefer `pages/users/page.rs` over `pages/users.rs`
 2. **Always use `pub fn`**: Makes pages more explicit: `#[webpage] pub fn name(...)`
 3. **Use descriptive function names**: `users`, `home`, `about`, etc.
 4. **Use slots for metadata**: Pass title, description, and other data to layouts
@@ -326,12 +326,12 @@ Access named partials via: `?partial=Header` or `?partial=Footer`
 
 ## Summary
 
-- **File naming**: Use `page.rhtml` for route files (preferred) or `<name>.rhtml`
+- **File naming**: Use `page.rs` for route files (preferred) or `<name>.rs`
 - **Page syntax**: `#[webpage] pub fn name(props: Type) { ... }` (ONLY way to define pages)
 - **Function name**: Can be anything - gets normalized internally
 - **Slots**: Optional metadata for layouts
 - **Dynamic routes**: Support `[param]`, `[param?]`, and `[...slug]` patterns
-- **Special files**: `_layout.rhtml` for layouts, `_error.rhtml` for error pages
+- **Special files**: `_layout.rs` for layouts, `_error.rs` for error pages
 - **Partials**: Files without `#[webpage]` are automatic partials
 
 For more information, see:

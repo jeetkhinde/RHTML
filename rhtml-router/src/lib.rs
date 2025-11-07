@@ -23,9 +23,9 @@
 //! let mut router = Router::new();
 //!
 //! // Add routes from file paths
-//! router.add_route(Route::from_path("pages/index.rhtml", "pages"));
-//! router.add_route(Route::from_path("pages/users/[id].rhtml", "pages"));
-//! router.add_route(Route::from_path("pages/docs/[...slug].rhtml", "pages"));
+//! router.add_route(Route::from_path("pages/index.rs", "pages"));
+//! router.add_route(Route::from_path("pages/users/[id].rs", "pages"));
+//! router.add_route(Route::from_path("pages/docs/[...slug].rs", "pages"));
 //!
 //! // Sort routes by priority
 //! router.sort_routes();
@@ -41,15 +41,15 @@
 //!
 //! | File Path | Route Pattern | Description |
 //! |-----------|---------------|-------------|
-//! | `pages/index.rhtml` | `/` | Root page |
-//! | `pages/about.rhtml` | `/about` | Static route |
-//! | `pages/users/index.rhtml` | `/users` | Section index |
-//! | `pages/users/[id].rhtml` | `/users/:id` | Dynamic segment |
-//! | `pages/docs/[...slug].rhtml` | `/docs/*slug` | Catch-all |
-//! | `pages/posts/[id?].rhtml` | `/posts/:id?` | Optional param |
-//! | `pages/_layout.rhtml` | `/` | Root layout |
-//! | `pages/users/_layout.rhtml` | `/users` | Section layout |
-//! | `pages/_error.rhtml` | `/` | Root error page |
+//! | `pages/index.rs` | `/` | Root page |
+//! | `pages/about.rs` | `/about` | Static route |
+//! | `pages/users/index.rs` | `/users` | Section index |
+//! | `pages/users/[id].rs` | `/users/:id` | Dynamic segment |
+//! | `pages/docs/[...slug].rs` | `/docs/*slug` | Catch-all |
+//! | `pages/posts/[id?].rs` | `/posts/:id?` | Optional param |
+//! | `pages/_layout.rs` | `/` | Root layout |
+//! | `pages/users/_layout.rs` | `/users` | Section layout |
+//! | `pages/_error.rs` | `/` | Root error page |
 //!
 //! ## Route Priority
 //!
