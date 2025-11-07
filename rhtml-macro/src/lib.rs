@@ -5,6 +5,11 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn, FnArg, Pat};
 
+mod layout;
+mod layout_registry;
+mod layout_resolver;
+mod slot;
+
 /// The #[webpage] attribute macro for defining pages
 ///
 /// # Example
