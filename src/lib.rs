@@ -1,3 +1,4 @@
+pub mod component;
 pub mod config;
 pub mod hot_reload;
 pub mod renderer;
@@ -7,6 +8,7 @@ pub mod template_loader;
 // Re-export router from rhtml-router crate
 pub use rhtml_router::{Route, RouteMatch, Router};
 
+pub use component::{Component, ComponentRegistry, get_component, register_component};
 pub use config::Config;
 pub use renderer::{LayoutDirective, Renderer};
 pub use request_context::{FormData, QueryParams, RequestContext};

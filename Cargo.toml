@@ -10,6 +10,7 @@ path = "src/main.rs"
 [dependencies]
 rhtml-parser = { path = "rhtml-parser" }
 rhtml-router = { path = "rhtml-router" }
+rhtml-macro = { path = "rhtml-macro" }
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -22,5 +23,6 @@ regex = "1.10"                                     # Keep for main project if ne
 notify = "6.1"
 tower-livereload = "0.9.6"
 urlencoding = "2.1"
+lazy_static = "1.4"
 
 [dev-dependencies]
