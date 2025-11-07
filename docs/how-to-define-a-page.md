@@ -33,13 +33,11 @@ pages/
 
 Both approaches work, but **`page.rhtml` is preferred** for consistency and clarity.
 
-## Defining Pages: Three Syntaxes
+## Defining Pages: #[webpage] Attribute
 
-RHTML supports three different syntaxes for defining pages, all of which compile to the same internal format. Choose the one that fits your style!
+RHTML uses the **#[webpage]** attribute for defining pages. This provides a Rust-native syntax that feels familiar to Rust developers.
 
-### 1. #[webpage] Attribute (Recommended - Most Rust-like)
-
-The **#[webpage]** attribute provides a Rust-native syntax that feels familiar to Rust developers:
+### The Only Way to Define Pages
 
 ```rhtml
 #[webpage]
@@ -55,49 +53,19 @@ pub fn users(props: UsersProps) {
 - 🦀 Looks and feels like native Rust code
 - 📝 Clear function signature shows props type
 - 🔧 Better IDE support (syntax highlighting, completion)
-- ✨ Familiar to React, SvelteKit, and Rust developers
+- ✨ Consistent - one clear way to define pages
 
-**Syntax variations:**
+### Syntax Variations
+
 ```rhtml
 #[webpage]
-pub fn home(props: PageProps) { ... }    ✅ With pub
+pub fn home(props: PageProps) { ... }    ✅ With pub (recommended)
 
 #[webpage]
 fn about(props: PageProps) { ... }       ✅ Without pub
 
 #[webpage]
 pub fn users(props: UsersProps) { ... }  ✅ Custom props type
-```
-
-### 2. WebPage() Function Syntax
-
-The traditional function-based syntax:
-
-```rhtml
-WebPage(props: &PageProps<()>) {
-    <div>
-        <h1>Your page content here</h1>
-    </div>
-}
-```
-
-**Case Insensitive:**
-```rhtml
-WebPage(props: &PageProps<()>) { ... }  ✅ Recommended
-webpage(props: &PageProps<()>) { ... }  ✅ Works
-WEBPAGE(props: &PageProps<()>) { ... }  ✅ Works
-```
-
-### 3. Inline WebPage Syntax
-
-The simplest syntax when you don't need props:
-
-```rhtml
-WebPage {
-    <div>
-        <h1>Simple page</h1>
-    </div>
-}
 ```
 
 ## Complete Page Example
@@ -350,23 +318,21 @@ Access named partials via: `?partial=Header` or `?partial=Footer`
 ## Best Practices
 
 1. **Use `page.rhtml` for consistency**: Prefer `pages/users/page.rhtml` over `pages/users.rhtml`
-2. **Use `#[webpage]` syntax**: Recommended for its Rust-native feel and better IDE support
-3. **Use slots for metadata**: Pass title, description, and other data to layouts
-4. **Keep pages simple**: Move complex logic to components or partials
-5. **Use meaningful route names**: Choose route paths that reflect your content structure
+2. **Always use `pub fn`**: Makes pages more explicit: `#[webpage] pub fn name(...)`
+3. **Use descriptive function names**: `users`, `home`, `about`, etc.
+4. **Use slots for metadata**: Pass title, description, and other data to layouts
+5. **Keep pages simple**: Move complex logic to components or partials
+6. **Use meaningful route names**: Choose route paths that reflect your content structure
 
 ## Summary
 
 - **File naming**: Use `page.rhtml` for route files (preferred) or `<name>.rhtml`
-- **Three syntaxes available**:
-  - `#[webpage] pub fn name(props: Type) { ... }` (Recommended - Rust-native)
-  - `WebPage(props: &PageProps<()>) { ... }` (Traditional)
-  - `WebPage { ... }` (Simple inline)
-- **Case insensitive**: `WebPage`, `webpage`, `WEBPAGE` all normalize to `WebPage`
+- **Page syntax**: `#[webpage] pub fn name(props: Type) { ... }` (ONLY way to define pages)
+- **Function name**: Can be anything - gets normalized internally
 - **Slots**: Optional metadata for layouts
 - **Dynamic routes**: Support `[param]`, `[param?]`, and `[...slug]` patterns
 - **Special files**: `_layout.rhtml` for layouts, `_error.rhtml` for error pages
-- **Partials**: Files without a page component are automatic partials
+- **Partials**: Files without `#[webpage]` are automatic partials
 
 For more information, see:
 - [Routing Documentation](../README.md#routing)

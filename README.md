@@ -146,11 +146,7 @@ css Page {
 }
 ```
 
-**Alternative syntaxes** (all work the same):
-```rhtml
-WebPage(props: &PageProps<()>) { ... }  // Traditional
-WebPage { ... }                          // Simple inline
-```
+**The `#[webpage]` attribute** is the ONLY way to define pages in RHTML - Rust-native syntax with better IDE support!
 
 ---
 

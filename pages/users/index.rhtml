@@ -5,7 +5,8 @@ slots {
   footer: "Nested Layout Demo"
 }
 
-WebPage(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="container">
     <h1 class="page-title">Users Directory 👥</h1>
     <p class="subtitle">Browse all users or create a new one</p>

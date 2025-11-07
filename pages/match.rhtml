@@ -3,7 +3,8 @@ title: "Pattern Matching Demo - r-match",
 footer: "RHTML Feature #4 Demo"
 }
 
-WebPage(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="max-w-4xl mx-auto">
     <h1 class="text-4xl font-bold text-gray-800 mb-6">
       Pattern Matching Demo 🎯

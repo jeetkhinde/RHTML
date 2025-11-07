@@ -57,7 +57,8 @@ partial ProductList(props: &PartialProps<()>) {
 }
 
 // Full page component (optional, but useful for demonstrating)
-WebPage(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
     <!DOCTYPE html>
     <html lang="en">
     <head>

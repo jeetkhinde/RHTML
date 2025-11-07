@@ -43,8 +43,8 @@ pub fn users(props: UsersProps) &#123;
                     <p>Better syntax highlighting and completion</p>
                 </div>
                 <div class="benefit-card">
-                    <h3>✨ Familiar</h3>
-                    <p>Similar to React components and SvelteKit</p>
+                    <h3>✨ Consistent</h3>
+                    <p>One clear way to define pages</p>
                 </div>
             </div>
         </section>
@@ -81,10 +81,11 @@ fn about(props: PageProps) &#123;
         </section>
 
         <section class="demo-section">
-            <h2>All Three Syntaxes Work!</h2>
+            <h2>Syntax Variations</h2>
+            <p>All case variations work and normalize to #[webpage]:</p>
             <div class="syntax-comparison">
                 <div class="syntax-item">
-                    <h3>1. #[webpage] Macro</h3>
+                    <h3>1. #[webpage] (Recommended)</h3>
                     <pre><code>#[webpage]
 pub fn users(props: UsersProps) &#123;
     &lt;div&gt;Content&lt;/div&gt;
@@ -92,15 +93,17 @@ pub fn users(props: UsersProps) &#123;
                 </div>
 
                 <div class="syntax-item">
-                    <h3>2. WebPage() Function</h3>
-                    <pre><code>WebPage(props: &amp;PageProps&lt;()&gt;) &#123;
+                    <h3>2. #[WEBPAGE] (Works)</h3>
+                    <pre><code>#[WEBPAGE]
+pub fn home(props: PageProps) &#123;
     &lt;div&gt;Content&lt;/div&gt;
 &#125;</code></pre>
                 </div>
 
                 <div class="syntax-item">
-                    <h3>3. Inline WebPage</h3>
-                    <pre><code>WebPage &#123;
+                    <h3>3. Without pub (Works)</h3>
+                    <pre><code>#[webpage]
+fn about(props: PageProps) &#123;
     &lt;div&gt;Content&lt;/div&gt;
 &#125;</code></pre>
                 </div>

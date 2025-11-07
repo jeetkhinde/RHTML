@@ -3,7 +3,8 @@ title: "HTMX Partial Rendering Demo",
 footer: "HTMX + RHTML = Perfect Match!"
 }
 
-WebPage(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="container mx-auto p-8 max-w-4xl">
     <h1 class="text-4xl font-bold mb-4">HTMX + Partial Rendering Demo</h1>
     <p class="text-gray-600 mb-8">

@@ -3,7 +3,8 @@ title: "Loops Demo - r-for Directive",
 footer: "RHTML Feature #3 Demo"
 }
 
-WebPage(props: &PageProps<()>) {
+#[webpage]
+fn page(props: PageProps) {
   <div class="max-w-4xl mx-auto">
     <h1 class="text-4xl font-bold text-gray-800 mb-6">
       Loop Rendering Demo 🔄
