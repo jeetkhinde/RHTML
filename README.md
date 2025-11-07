@@ -112,7 +112,7 @@ css layout {
 
 ### Page Files (`*.rhtml`)
 
-Pages define routes and their content.
+Pages define routes and their content. RHTML supports multiple syntaxes - use **#[webpage]** for a Rust-native feel:
 
 ```rhtml
 <!-- pages/users/index.rhtml -->
@@ -122,13 +122,14 @@ slots {
   footer: "User Management"
 }
 
-WebPage(props: &PageProps<()>) {
+#[webpage]
+pub fn users(props: UsersProps) {
   <div class="container mx-auto p-4">
     <h1 class="text-3xl font-bold mb-6">Users</h1>
 
     <!-- Demo: Eventually this will use data from data fn -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <div r-for="(index, item) in users">
+      <div r-for="(index, item) in props.users">
         <div class="card p-4 border rounded">
           <h3>User #{index}</h3>
           <p>{item}</p>
@@ -143,6 +144,12 @@ css Page {
     max-width: 1200px;
   }
 }
+```
+
+**Alternative syntaxes** (all work the same):
+```rhtml
+WebPage(props: &PageProps<()>) { ... }  // Traditional
+WebPage { ... }                          // Simple inline
 ```
 
 ---

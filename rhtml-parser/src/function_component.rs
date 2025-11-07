@@ -93,9 +93,68 @@ impl FunctionComponentParser {
         re.replace_all(content, "").to_string()
     }
 
+    /// Check if content has #[webpage] attribute
+    /// Format: #[webpage] (on its own line or before function)
+    pub fn has_webpage_attribute(content: &str) -> bool {
+        content.contains("#[webpage]")
+    }
+
+    /// Extract Rust functions with #[webpage] attribute
+    /// Parses: #[webpage] pub fn name(props: Type) { <html> }
+    pub fn extract_webpage_functions(content: &str) -> Vec<FunctionComponent> {
+        let mut components = Vec::new();
+
+        // Pattern: #[webpage] followed by function definition
+        let re = Regex::new(r"#\[webpage\]\s+(?:pub\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*\{").unwrap();
+
+        for cap in re.captures_iter(content) {
+            let full_match = cap.get(0).unwrap();
+            let _func_name = cap.get(1).unwrap().as_str().to_string();
+            let params = cap.get(2).unwrap().as_str();
+            let body_start = full_match.end();
+
+            // Extract props type from parameters
+            let props_type = Self::parse_webpage_params(params);
+
+            // Extract function body
+            if let Some(body) = Self::extract_braced_content(&content[body_start..]) {
+                components.push(FunctionComponent {
+                    name: "WebPage".to_string(), // Always treated as WebPage
+                    props_type,
+                    props_fields: Vec::new(),
+                    body: body.trim().to_string(),
+                    is_partial: false,
+                });
+            }
+        }
+
+        components
+    }
+
+    /// Parse parameters from #[webpage] function
+    /// Example: "props: UsersProps" -> Some("UsersProps")
+    fn parse_webpage_params(params: &str) -> Option<String> {
+        let params = params.trim();
+        if params.is_empty() {
+            return None;
+        }
+
+        // Look for: props: TypeName or just TypeName
+        if let Some(colon_pos) = params.find(':') {
+            Some(params[colon_pos + 1..].trim().to_string())
+        } else {
+            Some(params.trim().to_string())
+        }
+    }
+
     /// Check if content contains function-style components
-    /// (Components without 'cmp' or 'css' keywords)
+    /// (Components without 'cmp' or 'css' keywords, or #[webpage] functions)
     pub fn has_function_components(content: &str) -> bool {
+        // Check for #[webpage] attribute first
+        if Self::has_webpage_attribute(content) {
+            return true;
+        }
+
         // Look for pattern: ComponentName(...) {
         // But not: cmp ComponentName, css ComponentName, partial ComponentName
         // Use a more permissive regex that handles nested parentheses
@@ -364,6 +423,12 @@ impl FunctionComponentParser {
         format!("{} {{\n{}\n}}", component_name, component.body)
     }
 
+    /// Remove #[webpage] attributes from content
+    pub fn remove_webpage_attributes(content: &str) -> String {
+        let re = Regex::new(r"#\[webpage\]\s+(?:pub\s+)?fn\s+\w+\s*\([^)]*\)\s*").unwrap();
+        re.replace_all(content, "").to_string()
+    }
+
     /// Process content: convert function components to standard syntax
     /// Returns processed content and list of partials
     pub fn process_content(content: &str) -> ProcessedContent {
@@ -376,12 +441,37 @@ impl FunctionComponentParser {
         }
 
         let mut result = content.to_string();
+        let mut all_components = Vec::new();
 
-        // Extract function components BEFORE removing structs and @partial
-        let components = Self::extract_function_components(content);
+        // Check for #[webpage] syntax first
+        if Self::has_webpage_attribute(content) {
+            let webpage_components = Self::extract_webpage_functions(content);
+            all_components.extend(webpage_components);
+
+            // Remove #[webpage] function definitions from result
+            // We'll replace with WebPage { body } format
+            let re = Regex::new(r"#\[webpage\]\s+(?:pub\s+)?fn\s+\w+\s*\([^)]*\)\s*\{").unwrap();
+            for mat in re.find_iter(&result.clone()) {
+                let start = mat.start();
+                let body_start = mat.end();
+
+                // Find matching closing brace
+                if let Some(body) = Self::extract_braced_content(&result[body_start..]) {
+                    let end = body_start + body.len() + 1;
+
+                    // Replace the entire #[webpage] function with just WebPage { body }
+                    let replacement = format!("WebPage {{\n{}\n}}", body.trim());
+                    result = format!("{}{}{}", &result[..start], replacement, &result[end..]);
+                    break; // Process one at a time
+                }
+            }
+        } else {
+            // Extract traditional function components BEFORE removing structs and @partial
+            all_components.extend(Self::extract_function_components(content));
+        }
 
         // Track which components are partials
-        let partials: Vec<String> = components
+        let partials: Vec<String> = all_components
             .iter()
             .filter(|c| c.is_partial)
             .map(|c| c.name.clone())
@@ -393,8 +483,9 @@ impl FunctionComponentParser {
         // Remove struct definitions (we don't need them at runtime)
         result = Self::remove_structs(&result);
 
-        // Replace each function component with standard syntax
-        for component in components {
+        // Replace each function component with standard syntax (skip if already processed #[webpage])
+        if !Self::has_webpage_attribute(content) {
+            for component in all_components {
             // Find the original function component in result using a simple pattern
             // Pattern: Name( - then we'll manually find the closing paren and brace
             let search_pattern = format!(r"{}\s*\(", regex::escape(&component.name));
@@ -448,6 +539,7 @@ impl FunctionComponentParser {
                         }
                     }
                 }
+            }
             }
         }
 
@@ -717,5 +809,89 @@ WebPage(props: &PageProps<()>) {
         );
         // Should preserve HTML
         assert!(processed.content.contains("Users Directory"));
+    }
+
+    #[test]
+    fn test_webpage_attribute_detection() {
+        let content = r#"
+#[webpage]
+pub fn users(props: UsersProps) {
+    <div>Users</div>
+}
+        "#;
+
+        assert!(FunctionComponentParser::has_webpage_attribute(content));
+        assert!(FunctionComponentParser::has_function_components(content));
+    }
+
+    #[test]
+    fn test_extract_webpage_functions() {
+        let content = r#"
+#[webpage]
+pub fn users(props: UsersProps) {
+    <div class="container">
+        <h1>Users</h1>
+        <div r-for="user in props.data">
+            <user_card user={user} />
+        </div>
+    </div>
+}
+        "#;
+
+        let components = FunctionComponentParser::extract_webpage_functions(content);
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].name, "WebPage");
+        assert_eq!(components[0].props_type, Some("UsersProps".to_string()));
+        assert!(components[0].body.contains("<h1>Users</h1>"));
+    }
+
+    #[test]
+    fn test_process_webpage_attribute() {
+        let content = r#"
+slots {
+    title: "Users",
+}
+
+#[webpage]
+pub fn users(props: UsersProps) {
+    <div class="container">
+        <h1>Users</h1>
+        <div r-for="user in props.data">
+            <user_card user={user} />
+        </div>
+    </div>
+}
+        "#;
+
+        let processed = FunctionComponentParser::process_content(content);
+
+        // Should contain WebPage {
+        assert!(
+            processed.content.contains("WebPage {"),
+            "Content does not contain 'WebPage {{': {}",
+            processed.content
+        );
+
+        // Should preserve HTML
+        assert!(processed.content.contains("<h1>Users</h1>"));
+        assert!(processed.content.contains("r-for="));
+
+        // Should not contain #[webpage] anymore
+        assert!(!processed.content.contains("#[webpage]"));
+        assert!(!processed.content.contains("pub fn users"));
+    }
+
+    #[test]
+    fn test_webpage_attribute_without_pub() {
+        let content = r#"
+#[webpage]
+fn home(props: PageProps) {
+    <div>Home</div>
+}
+        "#;
+
+        let components = FunctionComponentParser::extract_webpage_functions(content);
+        assert_eq!(components.len(), 1);
+        assert_eq!(components[0].name, "WebPage");
     }
 }

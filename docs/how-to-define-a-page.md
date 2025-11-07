@@ -33,11 +33,45 @@ pages/
 
 Both approaches work, but **`page.rhtml` is preferred** for consistency and clarity.
 
-## The WebPage Component
+## Defining Pages: Three Syntaxes
 
-**`WebPage()` is the ONLY way to define a page in RHTML.** All pages must use this component.
+RHTML supports three different syntaxes for defining pages, all of which compile to the same internal format. Choose the one that fits your style!
 
-### Basic Syntax
+### 1. #[webpage] Attribute (Recommended - Most Rust-like)
+
+The **#[webpage]** attribute provides a Rust-native syntax that feels familiar to Rust developers:
+
+```rhtml
+#[webpage]
+pub fn users(props: UsersProps) {
+    <div class="container">
+        <h1>Users Directory</h1>
+        <p>Welcome to the users page!</p>
+    </div>
+}
+```
+
+**Benefits:**
+- 🦀 Looks and feels like native Rust code
+- 📝 Clear function signature shows props type
+- 🔧 Better IDE support (syntax highlighting, completion)
+- ✨ Familiar to React, SvelteKit, and Rust developers
+
+**Syntax variations:**
+```rhtml
+#[webpage]
+pub fn home(props: PageProps) { ... }    ✅ With pub
+
+#[webpage]
+fn about(props: PageProps) { ... }       ✅ Without pub
+
+#[webpage]
+pub fn users(props: UsersProps) { ... }  ✅ Custom props type
+```
+
+### 2. WebPage() Function Syntax
+
+The traditional function-based syntax:
 
 ```rhtml
 WebPage(props: &PageProps<()>) {
@@ -47,19 +81,28 @@ WebPage(props: &PageProps<()>) {
 }
 ```
 
-### Case Insensitive
-
-WebPage is case-insensitive and will normalize to `WebPage`:
-
+**Case Insensitive:**
 ```rhtml
 WebPage(props: &PageProps<()>) { ... }  ✅ Recommended
 webpage(props: &PageProps<()>) { ... }  ✅ Works
 WEBPAGE(props: &PageProps<()>) { ... }  ✅ Works
 ```
 
+### 3. Inline WebPage Syntax
+
+The simplest syntax when you don't need props:
+
+```rhtml
+WebPage {
+    <div>
+        <h1>Simple page</h1>
+    </div>
+}
+```
+
 ## Complete Page Example
 
-Here's a complete example of a page definition with all features:
+Here's a complete example using the recommended **#[webpage]** syntax:
 
 **File: `pages/users/page.rhtml`**
 
@@ -69,7 +112,8 @@ slots {
     description: "Browse all users"
 }
 
-WebPage(props: &PageProps<()>) {
+#[webpage]
+pub fn users(props: UsersProps) {
     <div class="container">
         <h1>Users Directory</h1>
         <p>Welcome to the users page!</p>
@@ -83,7 +127,7 @@ WebPage(props: &PageProps<()>) {
 }
 ```
 
-### Route: `/users`
+**Route:** `/users`
 
 ## Page Components Explained
 
@@ -306,7 +350,7 @@ Access named partials via: `?partial=Header` or `?partial=Footer`
 ## Best Practices
 
 1. **Use `page.rhtml` for consistency**: Prefer `pages/users/page.rhtml` over `pages/users.rhtml`
-2. **Always use `WebPage()`**: This is the only way to define pages
+2. **Use `#[webpage]` syntax**: Recommended for its Rust-native feel and better IDE support
 3. **Use slots for metadata**: Pass title, description, and other data to layouts
 4. **Keep pages simple**: Move complex logic to components or partials
 5. **Use meaningful route names**: Choose route paths that reflect your content structure
@@ -314,12 +358,15 @@ Access named partials via: `?partial=Header` or `?partial=Footer`
 ## Summary
 
 - **File naming**: Use `page.rhtml` for route files (preferred) or `<name>.rhtml`
-- **Page component**: `WebPage(props: &PageProps<()>) { ... }` is the ONLY way to define pages
-- **Case insensitive**: `WebPage`, `webpage`, `WEBPAGE` all work
+- **Three syntaxes available**:
+  - `#[webpage] pub fn name(props: Type) { ... }` (Recommended - Rust-native)
+  - `WebPage(props: &PageProps<()>) { ... }` (Traditional)
+  - `WebPage { ... }` (Simple inline)
+- **Case insensitive**: `WebPage`, `webpage`, `WEBPAGE` all normalize to `WebPage`
 - **Slots**: Optional metadata for layouts
 - **Dynamic routes**: Support `[param]`, `[param?]`, and `[...slug]` patterns
 - **Special files**: `_layout.rhtml` for layouts, `_error.rhtml` for error pages
-- **Partials**: Files without `WebPage` are automatic partials
+- **Partials**: Files without a page component are automatic partials
 
 For more information, see:
 - [Routing Documentation](../README.md#routing)
