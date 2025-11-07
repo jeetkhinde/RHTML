@@ -1,5 +1,5 @@
 # RHTML - Rust HTML Framework
-
+# Keep it original
 > **A Rust-first SSR framework that brings functional programming patterns to web development.**
 
 Write real HTML with minimal directives, keep business logic in Rust, and compile everything to a single binary.
