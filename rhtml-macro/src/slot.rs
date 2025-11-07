@@ -43,20 +43,15 @@ impl Parse for SlotAssignment {
 
 /// Process slot! macro
 ///
-/// Transforms new slot! syntax to runtime slots { } syntax
+/// Creates slot assignments for layout rendering.
 ///
 /// Example:
 /// ```ignore
 /// slot! { title: "Home", description: "Welcome" }
 /// ```
 ///
-/// Expands to:
-/// ```ignore
-/// slots {
-///     title: "Home",
-///     description: "Welcome"
-/// }
-/// ```
+/// Expands to an internal representation that will be processed
+/// by the RHTML parser to create the appropriate LayoutSlots struct.
 pub fn process_slot_macro(input: TokenStream) -> TokenStream {
     let slot_macro = parse_macro_input!(input as SlotMacro);
 
@@ -64,9 +59,10 @@ pub fn process_slot_macro(input: TokenStream) -> TokenStream {
     let keys: Vec<_> = slot_macro.slots.iter().map(|s| &s.key).collect();
     let values: Vec<_> = slot_macro.slots.iter().map(|s| &s.value).collect();
 
-    // Generate the runtime slots { } block
+    // Generate internal slot representation
+    // This will be recognized and processed by the RHTML parser
     let output = quote! {
-        slots {
+        __rhtml_slots__ {
             #( #keys: #values, )*
         }
     };

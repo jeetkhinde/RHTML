@@ -2,63 +2,64 @@
 
 ## Overview
 
-RHTML now supports a modern, type-safe layout and slotting system that provides:
+RHTML supports a modern, type-safe layout and slotting system that provides:
 
 - **Type-safe slot contracts** using `LayoutSlots` structs
-- **Compile-time syntax validation** with `#[layout]` and `slot!` macros
-- **Runtime compatibility** through automatic transformation
-- **Improved developer experience** with clear, declarative syntax
+- **Clean, declarative syntax** with `#[layout]` and `slot!` macros
+- **Optional slots** with `Option<T>` types
+- **Improved developer experience** with clear, typed interfaces
 
 ## Architecture
 
-The layout system uses a **hybrid approach**:
+The layout system uses:
 
-1. **Compile-time macros** (`#[layout]`, `slot!`) provide syntax validation and IDE support
-2. **Runtime transformation** converts new syntax to existing runtime format
-3. **Backward compatibility** - existing `cmp layout` and `slots {}` syntax still works
+1. **`#[layout]` macro** - Marks layout functions
+2. **`slot!` macro** - Declares slot values for pages
+3. **LayoutSlots struct** - Defines the type-safe slot contract
+4. **Runtime renderer** - Processes the slot values and renders layouts
 
 ### Components
 
 #### 1. `rhtml-macro` Crate
 
-New procedural macros for layout definitions:
+Procedural macros for layout definitions:
 
-- **`#[layout]`** - Marks layout functions and transforms syntax
+- **`#[layout]`** - Marks layout functions
 - **`slot!`** - Declares slot values for pages
 - **`#[component]`** - Marks reusable components
 
 Located in: `rhtml-macro/src/`
 
-#### 2. Runtime Parser Extensions
+#### 2. Renderer
 
-The `FunctionComponentParser` now handles:
+The renderer handles slot values through the `__rhtml_slots__` internal marker:
 
-- Transformation of `slot! { }` to `slots { }`
-- Transformation of `#[layout]` to `cmp layout`
-- Removal of `LayoutSlots` struct definitions (documentation only)
+- Processes `slot!` macro output
+- Extracts slot values
+- Renders layouts with provided slots
 
-Located in: `rhtml-parser/src/function_component.rs`
+Located in: `src/renderer.rs`
 
 #### 3. Layout Registry (Future)
 
-Infrastructure for compile-time validation:
+Infrastructure for enhanced compile-time validation:
 
 - `layout_registry.rs` - Stores layout metadata
 - `layout_resolver.rs` - Finds `_layout.rhtml` files
-- Currently not actively used but ready for future compile-time validation
+- Currently not actively used but ready for future enhancements
 
-## New Syntax
+## Syntax
 
 ### Defining Layouts
 
 **File**: `pages/_layout.rhtml`
 
 ```rust
-// Define the slot contract (documentation + future validation)
+// Define the slot contract
 pub struct LayoutSlots {
     pub content: String,           // Required - auto-filled with page body
-    pub title: String,              // Required - must be provided
-    pub description: Option<String>, // Optional
+    pub title: Option<String>,      // Optional - with default fallback
+    pub footer: Option<String>,     // Optional
 }
 
 #[layout]
@@ -66,13 +67,12 @@ pub fn layout(slots: LayoutSlots) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>{slots.get("title").unwrap_or("My App")}</title>
-  <meta name="description" content="{slots.get("description").unwrap_or("")}" />
+  <title>{slots.title.unwrap_or("My App".to_string())}</title>
 </head>
 <body>
   <nav><!-- Navigation --></nav>
   <main>{slots.content}</main>
-  <footer>© 2024</footer>
+  <footer>{slots.footer.unwrap_or("© 2024".to_string())}</footer>
 </body>
 </html>
 }
@@ -85,7 +85,7 @@ pub fn layout(slots: LayoutSlots) {
 ```rust
 slot! {
     title: "Home Page",
-    description: "Welcome to our site"
+    footer: "Welcome to our site"
 }
 
 #[webpage]
@@ -99,130 +99,58 @@ pub fn page(props: PageProps) {
 
 ## How It Works
 
-### Transformation Process
+### Processing Flow
 
-1. **File is loaded** by template loader at runtime
-2. **Parser transforms** new syntax to old syntax:
-   ```rust
-   // Input (new syntax)
-   slot! { title: "Home" }
+1. **Slot Macro Expansion**: `slot!` macro expands to internal `__rhtml_slots__` marker
+2. **Parser Processing**: RHTML parser recognizes the slots marker
+3. **Layout Resolution**: System finds appropriate `_layout.rhtml` file
+4. **Rendering**: Layout is rendered with slot values, page content fills `content` slot
 
-   // Output (runtime syntax)
-   slots { title: "Home" }
-   ```
+### Key Features
 
-3. **Layout macro transforms**:
-   ```rust
-   // Input
-   #[layout]
-   pub fn layout(slots: LayoutSlots) { ... }
-
-   // Output
-   cmp layout(slots: &Slots) { ... }
-   ```
-
-4. **LayoutSlots struct is removed** (it's just documentation)
-5. **Existing renderer** processes the transformed code
-
-### Benefits
-
-✅ **Developer Experience**: Clean, typed syntax with IDE support
-✅ **Backward Compatible**: Old syntax still works
-✅ **No Breaking Changes**: Gradual migration path
-✅ **Future-Ready**: Infrastructure for true compile-time validation
-
-## Migration Guide
-
-### From Old to New Syntax
-
-**Old Style** (`pages/_layout.rhtml`):
-```rust
-cmp layout(slots: &Slots) {
-<!DOCTYPE html>
-<html>
-  <head><title>{slots.get("title").unwrap_or("App")}</title></head>
-  <body>{slots.content}</body>
-</html>
-}
-```
-
-**New Style**:
-```rust
-pub struct LayoutSlots {
-    pub content: String,
-    pub title: String,
-}
-
-#[layout]
-pub fn layout(slots: LayoutSlots) {
-<!DOCTYPE html>
-<html>
-  <head><title>{slots.get("title").unwrap_or("App")}</title></head>
-  <body>{slots.content}</body>
-</html>
-}
-```
-
-**Old Style** (`pages/home.rhtml`):
-```rust
-slots {
-  title: "Home"
-}
-
-#[webpage]
-pub fn page(props: PageProps) { ... }
-```
-
-**New Style**:
-```rust
-slot! {
-    title: "Home"
-}
-
-#[webpage]
-pub fn page(props: PageProps) { ... }
-```
+✅ **Type Safety**: `LayoutSlots` struct defines clear slot contracts
+✅ **Optional Slots**: Use `Option<T>` for optional slots with defaults
+✅ **Clean Syntax**: Declarative `slot!` macro for slot values
+✅ **IDE Support**: Type definitions enable autocomplete and validation
 
 ## File Structure
 
 ```
 pages/
-├── _layout.rhtml          # Root layout (uses #[layout] syntax)
+├── _layout.rhtml          # Root layout
 ├── index.rhtml            # Uses slot! for slot values
 ├── about.rhtml
 │
-├── dashboard/
-│   ├── _layout.rhtml      # Dashboard-specific layout
-│   └── index.rhtml        # Uses dashboard layout
+├── users/
+│   ├── _layout.rhtml      # Users-specific layout
+│   ├── index.rhtml        # Uses users layout
+│   ├── new.rhtml
+│   └── [id].rhtml
 │
 └── test/
-    ├── _layout.rhtml      # Example of new syntax
-    └── index.rhtml        # Example page with slot!
+    ├── _layout.rhtml      # Test layout example
+    └── index.rhtml        # Test page example
 ```
 
 ## Implementation Files
 
-### Core Files Changed/Added
+### Core Files
 
 1. **`rhtml-macro/src/`**
    - `lib.rs` - Exports `#[layout]`, `slot!`, `#[component]` macros
-   - `layout.rs` - Implements `#[layout]` transformation
-   - `slot.rs` - Implements `slot!` transformation
+   - `layout.rs` - Implements `#[layout]` macro
+   - `slot.rs` - Implements `slot!` macro
    - `layout_registry.rs` - Layout metadata storage (future)
    - `layout_resolver.rs` - Layout file discovery (future)
 
-2. **`rhtml-parser/src/function_component.rs`**
-   - Added `transform_new_syntax()` - Main transformation function
-   - Added `transform_slot_macro()` - Transforms `slot!` to `slots`
-   - Added `transform_layout_macro()` - Transforms `#[layout]` to `cmp`
-   - Added `remove_layout_slots_struct()` - Removes struct definitions
-   - Added tests for all transformations
+2. **`src/renderer.rs`**
+   - `find_slots_block()` - Locates slot declarations
+   - Slot value extraction and processing
 
-3. **`rhtml-macro/Cargo.toml`**
-   - Added `once_cell` dependency for registry
-
-4. **Example Files**
-   - `pages/test/_layout.rhtml` - Example layout with new syntax
+3. **Example Files**
+   - `pages/_layout.rhtml` - Root layout with new syntax
+   - `pages/users/_layout.rhtml` - Nested layout example
+   - `pages/test/_layout.rhtml` - Example layout
    - `pages/test/index.rhtml` - Example page with `slot!`
 
 ## Testing
@@ -230,30 +158,62 @@ pages/
 ### Running Tests
 
 ```bash
-# Test the parser transformations
-cargo test function_component
-
 # Test the macro compilation
 cd rhtml-macro && cargo test
 
 # Test the full application
 cargo run
-curl http://localhost:3000/test
+curl http://localhost:3000
+curl http://localhost:3000/users
 ```
 
 ### Test Coverage
 
-✅ `slot!` macro transformation
-✅ `#[layout]` macro transformation
-✅ `LayoutSlots` struct removal
-✅ Full syntax transformation pipeline
-✅ Backward compatibility with old syntax
+✅ `slot!` macro compilation
+✅ `#[layout]` macro compilation
+✅ Layout rendering with slots
+✅ Nested layouts
+✅ Optional slots with defaults
+
+## Best Practices
+
+### 1. Define Clear Slot Contracts
+
+```rust
+pub struct LayoutSlots {
+    pub content: String,        // Always include content
+    pub title: Option<String>,   // Use Option for optional slots
+    pub meta_description: Option<String>,
+}
+```
+
+### 2. Provide Sensible Defaults
+
+```rust
+<title>{slots.title.unwrap_or("My App".to_string())}</title>
+<meta name="description" content="{slots.meta_description.unwrap_or("Default description".to_string())}" />
+```
+
+### 3. Document Slot Purpose
+
+```rust
+pub struct LayoutSlots {
+    /// Main content of the page (automatically filled)
+    pub content: String,
+
+    /// Page title shown in browser tab
+    pub title: Option<String>,
+
+    /// Footer text (defaults to copyright notice)
+    pub footer: Option<String>,
+}
+```
 
 ## Future Enhancements
 
-1. **True Compile-Time Validation**
-   - Use layout registry to validate slot requirements
-   - Provide compile errors for missing/wrong slots
+1. **Enhanced Compile-Time Validation**
+   - Validate slot requirements at compile time
+   - Provide compile errors for missing required slots
    - Type checking for slot values
 
 2. **Advanced Slot Types**
@@ -273,14 +233,15 @@ curl http://localhost:3000/test
 
 ## Notes
 
-- The `LayoutSlots` struct is currently **documentation only** - it gets removed at runtime
-- Slot values are still accessed via `slots.get("name")` at runtime
-- Future versions will add true compile-time validation using the struct definition
-- Both old and new syntax work simultaneously - no migration pressure
+- The `LayoutSlots` struct defines the contract for layout slots
+- Slot values are passed through the `slot!` macro
+- The `content` slot is automatically filled with the page body
+- Use `Option<T>` for optional slots and provide defaults with `unwrap_or()`
+- Nested layouts inherit from parent layouts up the directory tree
 
 ## Questions & Support
 
 For questions or issues with the layout system:
 - Check existing layouts in `pages/` for examples
-- Review tests in `rhtml-parser/src/function_component.rs`
-- See macro implementations in `rhtml-macro/src/`
+- Review macro implementations in `rhtml-macro/src/`
+- See renderer implementation in `src/renderer.rs`

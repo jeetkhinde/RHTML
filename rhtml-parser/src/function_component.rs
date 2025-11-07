@@ -86,9 +86,6 @@ impl FunctionComponentParser {
     pub fn process_content(content: &str) -> ProcessedContent {
         let mut result = content.to_string();
 
-        // Transform new syntax to old syntax
-        result = Self::transform_new_syntax(&result);
-
         // If no #[webpage] attribute, return as-is
         if !Self::has_webpage_attribute(&result) {
             return ProcessedContent {
@@ -120,54 +117,6 @@ impl FunctionComponentParser {
             content: result,
             partials: Vec::new(),
         }
-    }
-
-    /// Transform new syntax (slot!, #[layout]) to old syntax (slots {}, cmp layout)
-    fn transform_new_syntax(content: &str) -> String {
-        let mut result = content.to_string();
-
-        // Transform slot! { } to slots { }
-        result = Self::transform_slot_macro(&result);
-
-        // Transform #[layout] to cmp layout
-        result = Self::transform_layout_macro(&result);
-
-        // Remove LayoutSlots struct definitions
-        result = Self::remove_layout_slots_struct(&result);
-
-        result
-    }
-
-    /// Transform slot! { key: value } to slots { key: value }
-    fn transform_slot_macro(content: &str) -> String {
-        let re = Regex::new(r"slot!\s*\{").unwrap();
-        re.replace_all(content, "slots {").to_string()
-    }
-
-    /// Transform #[layout] functions to cmp layout syntax
-    fn transform_layout_macro(content: &str) -> String {
-        // Pattern: #[layout] pub fn layout(slots: LayoutSlots) { ... }
-        let re = Regex::new(r"#\[layout\]\s+(?:pub\s+)?fn\s+(\w+)\s*\(([^)]*)\)\s*\{").unwrap();
-
-        let result = re.replace_all(content, |caps: &regex::Captures| {
-            let fn_name = &caps[1];
-            let mut params = caps[2].to_string();
-
-            // Replace LayoutSlots with &Slots
-            params = params.replace("LayoutSlots", "&Slots");
-            params = params.replace("slots: ", "slots: ");
-
-            format!("cmp {}({}) {{", fn_name, params)
-        });
-
-        result.to_string()
-    }
-
-    /// Remove LayoutSlots struct definitions
-    fn remove_layout_slots_struct(content: &str) -> String {
-        // Match: pub struct LayoutSlots { ... }
-        let re = Regex::new(r"(?s)pub\s+struct\s+LayoutSlots\s*\{[^}]*\}").unwrap();
-        re.replace_all(content, "").to_string()
     }
 }
 
@@ -278,76 +227,5 @@ Some other content
 
         let processed = FunctionComponentParser::process_content(content);
         assert!(processed.content.contains("<div>Just HTML content</div>"));
-    }
-
-    #[test]
-    fn test_transform_slot_macro() {
-        let content = r#"
-slot! {
-    title: "Home",
-    description: "Welcome"
-}
-        "#;
-
-        let result = FunctionComponentParser::transform_slot_macro(content);
-        assert!(result.contains("slots {"));
-        assert!(!result.contains("slot!"));
-    }
-
-    #[test]
-    fn test_transform_layout_macro() {
-        let content = r#"
-#[layout]
-pub fn layout(slots: LayoutSlots) {
-    <html></html>
-}
-        "#;
-
-        let result = FunctionComponentParser::transform_layout_macro(content);
-        assert!(result.contains("cmp layout"));
-        assert!(!result.contains("#[layout]"));
-        assert!(result.contains("&Slots"));
-    }
-
-    #[test]
-    fn test_remove_layout_slots_struct() {
-        let content = r#"
-pub struct LayoutSlots {
-    pub content: String,
-    pub title: String,
-}
-
-#[layout]
-pub fn layout(slots: LayoutSlots) {
-    <html></html>
-}
-        "#;
-
-        let result = FunctionComponentParser::remove_layout_slots_struct(content);
-        assert!(!result.contains("pub struct LayoutSlots"));
-        assert!(result.contains("#[layout]"));
-    }
-
-    #[test]
-    fn test_full_new_syntax_transformation() {
-        let content = r#"
-pub struct LayoutSlots {
-    pub content: String,
-    pub title: String,
-}
-
-#[layout]
-pub fn layout(slots: LayoutSlots) {
-    <html>
-        <head><title>{slots.title}</title></head>
-        <body>{slots.content}</body>
-    </html>
-}
-        "#;
-
-        let processed = FunctionComponentParser::process_content(content);
-        assert!(!processed.content.contains("pub struct LayoutSlots"));
-        assert!(processed.content.contains("cmp layout"));
-        assert!(processed.content.contains("&Slots"));
     }
 }

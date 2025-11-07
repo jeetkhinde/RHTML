@@ -10,7 +10,8 @@ use crate::layout_resolver::get_directory_key;
 
 /// Process #[layout] attribute macro
 ///
-/// Transforms new #[layout] syntax to runtime cmp layout syntax
+/// Marks a function as a layout function. The function should accept
+/// a LayoutSlots parameter containing the slots to be rendered.
 ///
 /// Example:
 /// ```ignore
@@ -19,32 +20,13 @@ use crate::layout_resolver::get_directory_key;
 ///     <html>...</html>
 /// }
 /// ```
-///
-/// Transforms to:
-/// ```ignore
-/// cmp layout(slots: &Slots) {
-///     <html>...</html>
-/// }
-/// ```
 pub fn process_layout_macro(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let mut layout_fn = parse_macro_input!(item as ItemFn);
+    let layout_fn = parse_macro_input!(item as ItemFn);
 
-    // Change the function signature parameter from LayoutSlots to &Slots
-    if let Some(first_param) = layout_fn.sig.inputs.first_mut() {
-        if let syn::FnArg::Typed(pat_type) = first_param {
-            // Replace the type with &Slots
-            pat_type.ty = Box::new(syn::parse_quote!(&Slots));
-        }
-    }
-
-    // Get function name, params, and body
-    let fn_name = &layout_fn.sig.ident;
-    let inputs = &layout_fn.sig.inputs;
-    let body = &layout_fn.block;
-
-    // Transform to cmp layout syntax (runtime format)
+    // Simply return the function as-is
+    // The layout function will be processed by the RHTML parser
     let output = quote! {
-        cmp #fn_name(#inputs) #body
+        #layout_fn
     };
 
     output.into()

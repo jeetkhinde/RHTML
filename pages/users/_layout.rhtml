@@ -1,10 +1,17 @@
-cmp layout(slots: &Slots) {
+pub struct LayoutSlots {
+    pub content: String,
+    pub title: Option<String>,
+    pub footer: Option<String>,
+}
+
+#[layout]
+pub fn layout(slots: LayoutSlots) {
   <!DOCTYPE html>
   <html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{slots.get("title").unwrap_or("Users - RHTML")}</title>
+    <title>{slots.title.unwrap_or("Users - RHTML".to_string())}</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -35,7 +42,7 @@ cmp layout(slots: &Slots) {
     <footer class="bg-white border-t border-gray-200 py-6 mt-auto">
       <div class="max-w-7xl mx-auto px-6 text-center">
         <p class="text-sm text-gray-600">
-          {slots.get("footer").unwrap_or("Users Section • RHTML Demo")}
+          {slots.footer.unwrap_or("Users Section • RHTML Demo".to_string())}
         </p>
       </div>
     </footer>
