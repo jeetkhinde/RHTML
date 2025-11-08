@@ -8,7 +8,8 @@ use axum::{
 };
 use rhtml_app::hot_reload::{create_watcher, ChangeType};
 use rhtml_app::{
-    Config, FormData, LayoutDirective, QueryParams, Renderer, RequestContext, TemplateLoader,
+    ActionHandlerRegistry, Config, FormData, LayoutDirective, QueryParams, Renderer,
+    RequestContext, TemplateLoader, register_built_in_handlers,
 };
 use rhtml_parser::Value;
 use serde_json::Value as JsonValue;
@@ -21,6 +22,7 @@ use tracing::{error, info};
 #[derive(Clone)]
 struct AppState {
     template_loader: Arc<RwLock<TemplateLoader>>,
+    action_registry: Arc<ActionHandlerRegistry>,
 }
 
 #[tokio::main]
@@ -118,9 +120,14 @@ async fn main() {
         println!("🔄 Hot Reload: DISABLED");
     }
 
+    // Setup action handler registry
+    let mut action_registry = ActionHandlerRegistry::new();
+    register_built_in_handlers(&mut action_registry);
+
     // Setup application state
     let state = AppState {
         template_loader: template_loader.clone(),
+        action_registry: Arc::new(action_registry),
     };
 
     // Build router with support for all HTTP methods
@@ -241,6 +248,13 @@ async fn create_request_context(
 
 /// Render a route with layout
 async fn render_route(state: &AppState, route: &str, request_context: RequestContext) -> Response {
+    // Check if there's an action handler for this route and method
+    let method_str = request_context.method.as_str();
+    if let Some(handler) = state.action_registry.find(route, method_str) {
+        // Execute the action handler instead of rendering the template
+        return handler(request_context).await.into_response();
+    }
+
     let loader = state.template_loader.read().await;
 
     // Use the router to match the route
