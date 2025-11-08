@@ -166,4 +166,69 @@ mod tests {
         assert!(context.has_error("email"));
         assert!(context.has_errors());
     }
+
+    #[test]
+    fn test_deserialization_error_returns_invalid() {
+        // Create form data with missing required field
+        let mut fields = HashMap::new();
+        fields.insert("name".to_string(), "John".to_string());
+        // Missing "email" field which is required
+
+        let form = FormData::from_fields(fields);
+        let result = validate_request::<TestForm>(&form);
+
+        // Should be invalid due to deserialization error (missing field)
+        assert!(result.is_invalid());
+        let context = result.err().expect("Should have deserialization error");
+        assert!(context.has_error("_form"), "Expected _form error for deserialization");
+    }
+
+    #[test]
+    fn test_validation_result_methods() {
+        let mut fields = HashMap::new();
+        fields.insert("name".to_string(), "John".to_string());
+        fields.insert("email".to_string(), "john@example.com".to_string());
+
+        let form = FormData::from_fields(fields);
+        let result = validate_request::<TestForm>(&form);
+
+        // Test methods on valid result
+        assert!(result.is_valid());
+        assert!(!result.is_invalid());
+
+        // Test ok() separately
+        let result2 = validate_request::<TestForm>(&form);
+        assert!(result2.ok().is_some());
+
+        // Test err() separately
+        let result3 = validate_request::<TestForm>(&form);
+        assert!(result3.err().is_none());
+    }
+
+    #[test]
+    fn test_form_values_preserved_on_error() {
+        let mut fields = HashMap::new();
+        fields.insert("name".to_string(), "Alice".to_string());
+        fields.insert("email".to_string(), "invalid".to_string());
+
+        let form = FormData::from_fields(fields);
+        let result = validate_request::<TestForm>(&form);
+
+        // Original values should be preserved in form context
+        let context = result.err().expect("Should have errors");
+        assert_eq!(context.get_value("name"), Some("Alice"), "Name should be preserved");
+        assert_eq!(context.get_value("email"), Some("invalid"), "Email should be preserved");
+    }
+
+    #[test]
+    fn test_empty_form_validation() {
+        let form = FormData::new();
+        let result = validate_request::<TestForm>(&form);
+
+        // Empty form should fail validation
+        assert!(result.is_invalid());
+        let context = result.err().expect("Should have errors");
+        // Should have deserialization error for missing required fields
+        assert!(context.has_error("_form") || context.has_error("name"));
+    }
 }

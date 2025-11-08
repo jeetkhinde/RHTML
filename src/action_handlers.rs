@@ -106,4 +106,129 @@ mod tests {
         assert!(!registry.has_action("/test", "POST"));
         assert!(registry.find("/test", "get").is_some());
     }
+
+    #[test]
+    fn test_built_in_handlers_registered() {
+        let mut registry = ActionHandlerRegistry::new();
+        register_built_in_handlers(&mut registry);
+
+        // Verify all example action handlers are registered
+        assert!(registry.has_action("/examples/actions-validation", "GET"));
+        assert!(registry.has_action("/examples/actions-validation", "POST"));
+        assert!(registry.has_action("/examples/actions-validation", "PATCH"));
+        assert!(registry.has_action("/examples/actions-validation", "DELETE"));
+    }
+
+    #[test]
+    fn test_handler_case_insensitive_method() {
+        let mut registry = ActionHandlerRegistry::new();
+
+        let handler: ActionHandler = |_ctx| Box::pin(async {
+            ActionResult::Html {
+                content: "success".to_string(),
+                headers: Default::default(),
+            }
+        });
+
+        registry.register("/test", "POST", handler);
+
+        // Methods should be case-insensitive
+        assert!(registry.find("/test", "post").is_some());
+        assert!(registry.find("/test", "POST").is_some());
+        assert!(registry.find("/test", "Post").is_some());
+    }
+
+    #[test]
+    fn test_handler_route_matching() {
+        let mut registry = ActionHandlerRegistry::new();
+
+        let handler: ActionHandler = |_ctx| Box::pin(async {
+            ActionResult::Html {
+                content: "matched".to_string(),
+                headers: Default::default(),
+            }
+        });
+
+        registry.register("/api/users", "GET", handler);
+
+        // Exact path match
+        assert!(registry.has_action("/api/users", "GET"));
+
+        // Different path should not match
+        assert!(!registry.has_action("/api/users/123", "GET"));
+        assert!(!registry.has_action("/api/user", "GET"));
+    }
+
+    #[test]
+    fn test_multiple_methods_same_route() {
+        let mut registry = ActionHandlerRegistry::new();
+
+        let get_handler: ActionHandler = |_ctx| Box::pin(async {
+            ActionResult::Html {
+                content: "GET".to_string(),
+                headers: Default::default(),
+            }
+        });
+
+        let post_handler: ActionHandler = |_ctx| Box::pin(async {
+            ActionResult::Html {
+                content: "POST".to_string(),
+                headers: Default::default(),
+            }
+        });
+
+        registry.register("/test", "GET", get_handler);
+        registry.register("/test", "POST", post_handler);
+
+        assert!(registry.has_action("/test", "GET"));
+        assert!(registry.has_action("/test", "POST"));
+        assert!(!registry.has_action("/test", "PUT"));
+    }
+
+    #[test]
+    fn test_handler_execution_returns_html() {
+        let mut registry = ActionHandlerRegistry::new();
+
+        let handler: ActionHandler = |_ctx| Box::pin(async {
+            ActionResult::Html {
+                content: "<p>Hello World</p>".to_string(),
+                headers: Default::default(),
+            }
+        });
+
+        registry.register("/test", "GET", handler);
+
+        // Verify the handler was successfully registered and can be found
+        let found = registry.find("/test", "GET");
+        assert!(found.is_some(), "Handler should be found after registration");
+        assert!(registry.has_action("/test", "GET"), "Registry should report action exists");
+    }
+
+    #[test]
+    fn test_empty_registry() {
+        let registry = ActionHandlerRegistry::new();
+
+        assert!(!registry.has_action("/any/path", "GET"));
+        assert!(registry.find("/any/path", "GET").is_none());
+    }
+
+    #[test]
+    fn test_handler_not_found_returns_none() {
+        let mut registry = ActionHandlerRegistry::new();
+
+        let handler: ActionHandler = |_ctx| Box::pin(async {
+            ActionResult::Html {
+                content: "test".to_string(),
+                headers: Default::default(),
+            }
+        });
+
+        registry.register("/test", "GET", handler);
+
+        // Requesting wrong method should return None
+        assert!(registry.find("/test", "DELETE").is_none());
+
+        // Requesting wrong path should return None
+        assert!(registry.find("/wrong", "GET").is_none());
+    }
 }

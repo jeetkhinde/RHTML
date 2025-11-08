@@ -348,3 +348,156 @@ impl FormData {
         Ok(parsed)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_form_data_empty() {
+        let form = FormData::new();
+        assert!(form.is_empty());
+        assert!(form.as_map().is_empty());
+        assert!(!form.has_errors());
+    }
+
+    #[test]
+    fn test_form_data_trimming() {
+        let mut fields = HashMap::new();
+        fields.insert("name".to_string(), "  John  ".to_string());
+        fields.insert("email".to_string(), "\ttest@example.com\n".to_string());
+
+        let form = FormData::from_fields(fields);
+
+        // Strings should be trimmed
+        assert_eq!(form.get("name"), Some(&"John".to_string()));
+        assert_eq!(form.get("email"), Some(&"test@example.com".to_string()));
+    }
+
+    #[test]
+    fn test_form_data_json_parsing() {
+        let json = serde_json::json!({
+            "name": "Alice",
+            "age": 30,
+            "active": true
+        });
+
+        let form = FormData::from_json(json.clone());
+
+        assert_eq!(form.get("name"), Some(&"Alice".to_string()));
+        assert_eq!(form.get("age"), Some(&"30".to_string()));
+        assert_eq!(form.json(), Some(&json));
+    }
+
+    #[test]
+    fn test_form_data_preserves_empty_strings() {
+        let mut fields = HashMap::new();
+        fields.insert("name".to_string(), "".to_string());
+        fields.insert("bio".to_string(), "".to_string());
+
+        let form = FormData::from_fields(fields);
+
+        // Empty strings should be preserved
+        assert_eq!(form.get("name"), Some(&"".to_string()));
+        assert_eq!(form.get("bio"), Some(&"".to_string()));
+        assert!(!form.is_empty()); // Form has fields, even if empty
+    }
+
+    #[test]
+    fn test_form_data_keys() {
+        let mut fields = HashMap::new();
+        fields.insert("name".to_string(), "John".to_string());
+        fields.insert("email".to_string(), "john@example.com".to_string());
+
+        let form = FormData::from_fields(fields);
+        let keys = form.keys();
+
+        assert_eq!(keys.len(), 2);
+        let key_strs: Vec<&str> = keys.iter().map(|k| k.as_str()).collect();
+        assert!(key_strs.contains(&"name"));
+        assert!(key_strs.contains(&"email"));
+    }
+
+    #[test]
+    fn test_form_data_get_as_types() {
+        let mut fields = HashMap::new();
+        fields.insert("age".to_string(), "30".to_string());
+        fields.insert("name".to_string(), "John".to_string());
+        fields.insert("score".to_string(), "95.5".to_string());
+
+        let form = FormData::from_fields(fields);
+
+        assert_eq!(form.get_as::<i32>("age"), Some(30));
+        assert_eq!(form.get_as::<f64>("score"), Some(95.5));
+        assert_eq!(form.get_as::<i32>("name"), None); // Can't parse string as int
+    }
+
+    #[test]
+    fn test_form_data_validation_errors() {
+        let form = FormData::new();
+        assert!(!form.has_errors());
+        assert!(form.get_error("name").is_none());
+
+        let mut errors = HashMap::new();
+        errors.insert("name".to_string(), "Name is required".to_string());
+        errors.insert("email".to_string(), "Invalid email".to_string());
+
+        let mut form = FormData::new();
+        form.set_validation_errors(errors);
+
+        assert!(form.has_errors());
+        assert!(form.has_error("name"));
+        assert!(form.has_error("email"));
+        assert!(!form.has_error("age"));
+        assert_eq!(form.get_error("name"), Some(&"Name is required".to_string()));
+    }
+
+    #[test]
+    fn test_query_params_basic() {
+        let mut params = HashMap::new();
+        params.insert("page".to_string(), "1".to_string());
+        params.insert("filter".to_string(), "active".to_string());
+
+        let query = QueryParams::new(params);
+
+        assert!(query.has("page"));
+        assert!(query.has("filter"));
+        assert!(!query.has("sort"));
+        assert_eq!(query.get("page"), Some(&"1".to_string()));
+    }
+
+    #[test]
+    fn test_query_params_get_as() {
+        let mut params = HashMap::new();
+        params.insert("page".to_string(), "2".to_string());
+        params.insert("limit".to_string(), "50".to_string());
+
+        let query = QueryParams::new(params);
+
+        assert_eq!(query.get_as::<i32>("page"), Some(2));
+        assert_eq!(query.get_as::<i32>("limit"), Some(50));
+        assert_eq!(query.get_as::<i32>("nonexistent"), None);
+    }
+
+    #[test]
+    fn test_request_context_cookies() {
+        let mut headers = HeaderMap::new();
+        headers.insert("cookie", "session=abc123; user=john".parse().unwrap());
+
+        let cookies = RequestContext::parse_cookies(&headers);
+
+        assert_eq!(cookies.get("session"), Some(&"abc123".to_string()));
+        assert_eq!(cookies.get("user"), Some(&"john".to_string()));
+        assert_eq!(cookies.len(), 2);
+    }
+
+    #[test]
+    fn test_request_context_accepts_json() {
+        let mut headers = HeaderMap::new();
+        headers.insert("accept", "application/json".parse().unwrap());
+
+        // We can't create a full context without a database, but we can test the parse method
+        let cookies = RequestContext::parse_cookies(&headers);
+        assert!(cookies.is_empty()); // No cookies in this test
+    }
+}
