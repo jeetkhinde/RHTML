@@ -79,10 +79,8 @@ pub fn form_to_json(form_data: &FormData) -> JsonValue {
             map.insert(key.clone(), json!(num));
         } else if let Ok(num) = value.parse::<f64>() {
             map.insert(key.clone(), json!(num));
-        } else if value.is_empty() {
-            // Empty strings become null
-            map.insert(key.clone(), JsonValue::Null);
         } else {
+            // Keep strings as-is (including empty strings)
             map.insert(key.clone(), json!(value));
         }
     }

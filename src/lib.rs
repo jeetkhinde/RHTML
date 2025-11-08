@@ -4,22 +4,26 @@ pub mod actions;
 pub mod component;
 pub mod config;
 pub mod example_actions;
+pub mod form_context;
 pub mod hot_reload;
 pub mod renderer;
 pub mod request_context;
 pub mod template_loader;
 pub mod validation;
+pub mod validation_pipeline;
 
 // Re-export router from rhtml-router crate
 pub use rhtml_router::{Route, RouteMatch, Router};
 
-pub use action_executor::{deserialize_form, validate_request, ActionResult, form_to_json};
+pub use action_executor::{deserialize_form, ActionResult, form_to_json};
 pub use action_handlers::{ActionHandler, ActionHandlerRegistry, register_built_in_handlers};
 pub use actions::{ActionInfo, ActionMethod, ActionRegistry, ActionResponse, Empty, ResultExt};
 pub use component::{Component, ComponentRegistry, get_component, register_component};
 pub use config::Config;
+pub use form_context::FormContext;
 pub use renderer::{LayoutDirective, Renderer};
 pub use request_context::{FormData, QueryParams, RequestContext};
 pub use rhtml_parser::{DirectiveParser, ExpressionEvaluator};
 pub use template_loader::{Template, TemplateLoader};
 pub use validation::{Validate, ValidationResult};
+pub use validation_pipeline::{validate_request, ValidationPipelineResult};

@@ -2,9 +2,11 @@
 // Purpose: Example action implementations for /examples/actions-validation
 // This demonstrates how actions work with validation and form helpers
 
-use crate::action_executor::{ActionResult, deserialize_form};
+use crate::action_executor::ActionResult;
 use crate::request_context::RequestContext;
+use crate::validation::Validate;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Example User struct (used for demonstration)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +45,97 @@ pub struct UpdateUserRequest {
 pub struct SearchUsersRequest {
     pub filter: Option<String>,
     pub page: Option<i32>,
+}
+
+// Implement Validate for CreateUserRequest
+impl Validate for CreateUserRequest {
+    fn validate(&self) -> Result<(), HashMap<String, String>> {
+        let mut errors = HashMap::new();
+
+        // Validate name
+        if self.name.trim().is_empty() {
+            errors.insert("name".to_string(), "Name is required".to_string());
+        }
+
+        // Validate email
+        if !self.email.contains('@') {
+            errors.insert("email".to_string(), "Invalid email format".to_string());
+        }
+
+        // Validate password (at least 8 characters)
+        if self.password.len() < 8 {
+            errors.insert(
+                "password".to_string(),
+                "Password must be at least 8 characters".to_string(),
+            );
+        }
+
+        // Validate age
+        if self.age < 18 {
+            errors.insert("age".to_string(), "Must be at least 18 years old".to_string());
+        } else if self.age > 120 {
+            errors.insert("age".to_string(), "Please enter a valid age".to_string());
+        }
+
+        // Validate username
+        if self.username.len() < 3 {
+            errors.insert(
+                "username".to_string(),
+                "Username must be at least 3 characters".to_string(),
+            );
+        } else if self.username.len() > 50 {
+            errors.insert(
+                "username".to_string(),
+                "Username must be at most 50 characters".to_string(),
+            );
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+// Implement Validate for UpdateUserRequest
+impl Validate for UpdateUserRequest {
+    fn validate(&self) -> Result<(), HashMap<String, String>> {
+        let mut errors = HashMap::new();
+
+        if let Some(name) = &self.name {
+            if name.trim().is_empty() {
+                errors.insert("name".to_string(), "Name cannot be empty".to_string());
+            }
+        }
+
+        if let Some(email) = &self.email {
+            if !email.contains('@') {
+                errors.insert("email".to_string(), "Invalid email format".to_string());
+            }
+        }
+
+        if let Some(age) = &self.age {
+            if *age < 18 {
+                errors.insert("age".to_string(), "Must be at least 18 years old".to_string());
+            } else if *age > 120 {
+                errors.insert("age".to_string(), "Please enter a valid age".to_string());
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+// Implement Validate for SearchUsersRequest (no validation needed)
+impl Validate for SearchUsersRequest {
+    fn validate(&self) -> Result<(), HashMap<String, String>> {
+        Ok(())
+    }
 }
 
 /// Mock database functions
@@ -98,53 +191,70 @@ pub async fn get_actions_validation(_ctx: RequestContext) -> ActionResult {
 
 /// POST /examples/actions-validation - Create a user
 pub async fn post_actions_validation(ctx: RequestContext) -> ActionResult {
-    // Deserialize form data into CreateUserRequest
-    let req: CreateUserRequest = match deserialize_form(&ctx.form) {
-        Ok(r) => r,
-        Err(e) => {
-            return ActionResult::Error {
-                status: 400,
-                message: format!("Failed to parse form data: {}", e),
-            };
+    use crate::validation_pipeline::{validate_request as validate_req, ValidationPipelineResult};
+
+    // Validate the request
+    let result = validate_req::<CreateUserRequest>(&ctx.form);
+
+    match result {
+        ValidationPipelineResult::Invalid(form_context) => {
+            // Validation failed - return error response with form context
+            let error_html = format_validation_errors(&form_context);
+            ActionResult::Html {
+                content: error_html,
+                headers: Default::default(),
+            }
         }
-    };
+        ValidationPipelineResult::Valid(req) => {
+            // Validation passed - create the user
+            let user = db::create_user(req);
+            let user_count = db::count_users();
 
-    // TODO: Validate request using Validate trait
-    // For now, just create the user
-    let user = db::create_user(req);
-    let user_count = db::count_users();
+            // Return HTML with toast and OOB update
+            let response_html = format!(
+                r#"<div class="user-card" id="user-{}">
+                <h3>{} (@{})</h3>
+                <p>Email: {}</p>
+                <p>Age: {}</p>
+            </div>"#,
+                user.id, user.name, user.username, user.email, user.age
+            );
 
-    // Return HTML with toast and OOB update
-    let response_html = format!(
-        r#"<div class="user-card" id="user-{}">
-            <h3>{} (@{})</h3>
-            <p>Email: {}</p>
-            <p>Age: {}</p>
-        </div>"#,
-        user.id, user.name, user.username, user.email, user.age
-    );
+            // Build response with HX-Trigger header for toast
+            let mut headers = axum::http::HeaderMap::new();
+            let trigger = serde_json::json!({
+                "showToast": {
+                    "message": "User created!"
+                }
+            });
+            if let Ok(value) = trigger.to_string().parse() {
+                headers.insert("HX-Trigger", value);
+            }
 
-    // Build response with HX-Trigger header for toast
-    let mut headers = axum::http::HeaderMap::new();
-    let trigger = serde_json::json!({
-        "showToast": {
-            "message": "User created!"
+            // Add OOB update for user count
+            let oob_html = format!(
+                r#"<div id="user-count" hx-swap-oob="true">{}</div>"#,
+                user_count
+            );
+
+            ActionResult::Html {
+                content: format!("{}\n{}", response_html, oob_html),
+                headers,
+            }
         }
-    });
-    if let Ok(value) = trigger.to_string().parse() {
-        headers.insert("HX-Trigger", value);
+    }
+}
+
+/// Helper function to format validation errors as HTML
+fn format_validation_errors(context: &crate::form_context::FormContext) -> String {
+    let mut html = String::from(r#"<div class="validation-errors"><h3>Please fix the following errors:</h3><ul>"#);
+
+    for (field, error) in context.get_errors() {
+        html.push_str(&format!(r#"<li><strong>{}</strong>: {}</li>"#, field, error));
     }
 
-    // Add OOB update for user count
-    let oob_html = format!(
-        r#"<div id="user-count" hx-swap-oob="true">{}</div>"#,
-        user_count
-    );
-
-    ActionResult::Html {
-        content: format!("{}\n{}", response_html, oob_html),
-        headers,
-    }
+    html.push_str("</ul></div>");
+    html
 }
 
 /// PATCH /examples/actions-validation/:id - Update a user
