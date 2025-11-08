@@ -1,38 +1,39 @@
+// Pages/_layout.rhtml
+
 pub struct LayoutSlots {
-    pub content: String,
-    pub title: Option<String>,
-    pub footer: Option<String>,
-}
+pub content: impl Render, // Required - auto-filled
+pub title: &str, // Required - must provide
+pub description: Option<&str>, // Optional - text
+  pub header: Option<impl Render>, // Optional - component
+    pub footer: Option<impl Render>, // Optional - component
+      }
 
-#[layout]
-pub fn layout(slots: LayoutSlots) {
-<!DOCTYPE html>
-<html lang="en">
+      #[layout]
+      pub fn layout(slots: LayoutSlots) {
+      <!DOCTYPE html>
+      <html lang="en">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{slots.title.unwrap_or("RHTML App".to_string())}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+      <head>
+        <title>{slots.title}</title>
+        {slots.description.map(|d|
+        <meta name="description" content={d} />)}
+      </head>
 
-<body class="bg-gray-50">
-  <nav class="bg-blue-600 text-white p-4">
-    <div class="container mx-auto">
-      <a href="/" class="font-bold text-xl">RHTML App</a>
-    </div>
-  </nav>
+      <body>
+        {slots.header.unwrap_or_else(|| default_nav())}
+        <main>{slots.content}</main>
+        {slots.footer.unwrap_or_else(|| default_footer())}
+      </body>
 
-  <main class="container mx-auto p-4">
-    {slots.content}
-  </main>
+      </html>
+      }
 
-  <footer class="bg-gray-800 text-white p-4 mt-8">
-    <div class="container mx-auto text-center">
-      {slots.footer.unwrap_or("© 2024 RHTML".to_string())}
-    </div>
-  </footer>
-</body>
+      #[component]
+      fn default_nav() {
+      <nav><a href="/">Home</a></nav>
+      }
 
-</html>
-}
+      #[component]
+      fn default_footer() {
+      <nav><a href="/">footer...</a></nav>
+      }

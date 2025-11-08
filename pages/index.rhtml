@@ -1,87 +1,22 @@
+// Pages/index.rhtml
+
 slot! {
-title: "Home - RHTML App",
-footer: "Welcome to RHTML Framework"
+title: "Users",
+description: "Manage all users",
+footer: custom_footer()
 }
 
 #[webpage]
-fn page(props: PageProps) {
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold text-gray-800 mb-4">
-      Welcome to RHTML - Hot Reload Fixed!!! 🔥🎉🎉
-    </h1>
-
-    <p class="text-lg text-gray-600 mb-6">
-      A Rust-first SSR framework that brings functional programming patterns to web development.
-    </p>
-
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-2xl font-semibold mb-4">Features</h2>
-      <ul class="space-y-2">
-        <li class="flex items-center">
-          <span class="text-green-500 mr-2">✓</span>
-          HTML files, not Rust macros
-        </li>
-        <li class="flex items-center">
-          <span class="text-green-500 mr-2">✓</span>
-          Functional patterns over imperative code
-        </li>
-        <li class="flex items-center">
-          <span class="text-green-500 mr-2">✓</span>
-          SSR-only (use HTMX/Alpine for client interactivity)
-        </li>
-        <li class="flex items-center">
-          <span class="text-green-500 mr-2">✓</span>
-          Single binary deployment
-        </li>
-      </ul>
-    </div>
-
-    <div class="mt-8 flex gap-4 flex-wrap">
-      <a href="/about" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-block">
-        Learn More →
-      </a>
-      <a href="/demo" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 inline-block">
-        Conditionals Demo 🎨
-      </a>
-      <a href="/loops" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 inline-block">
-        Loops Demo 🔄
-      </a>
-      <a href="/match" class="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 inline-block">
-        Pattern Matching 🎯
-      </a>
-      <a href="/components" class="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 inline-block">
-        Components 🧩
-      </a>
-      <a href="/css-demo" class="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 inline-block">
-        CSS Scoping 🎨
-      </a>
-      <a href="/routing" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 inline-block">
-        File-based Routing 🛣️
-      </a>
-      <a href="/request-demo" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 inline-block">
-        Request Context 🌐
-      </a>
-      <a href="/htmx-demo" class="bg-yellow-600 text-white px-6 py-3 rounded-lg hover:bg-yellow-700 inline-block">
-        HTMX Partials ⚡
-      </a>
-      <a href="/users" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700 inline-block">
-        Named Partials 🎯
-      </a>
-      <a href="/api" class="bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-900 inline-block">
-        @layout(false) Demo 🚫
-      </a>
-      <a href="/products" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 inline-block">
-        Layout + Partials 🔥
-      </a>
-      <a href="/docs" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-block">
-        Catch-All Routes [...slug] 🚀 NEW!
-      </a>
-      <a href="/posts" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 inline-block">
-        Optional Params [id?] 🎯 NEW!
-      </a>
-      <a href="/nonexistent" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 inline-block">
-        Custom Error Pages ⚠️ NEW!!
-      </a>
-    </div>
+pub fn users(props: UsersProps) {
+<div>
+  <h1>Users</h1>
+  <div r-for="user in props.data">
+    <user_card user={user} />
   </div>
-  }
+</div>
+}
+
+#[component]
+fn custom_footer() {
+<footer>Custom © 2024</footer>
+}
