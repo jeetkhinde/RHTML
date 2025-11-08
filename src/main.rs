@@ -9,10 +9,11 @@ use axum::{
 use rhtml_app::hot_reload::{create_watcher, ChangeType};
 use rhtml_app::{
     ActionHandlerRegistry, Config, FormData, LayoutDirective, QueryParams, Renderer,
-    RequestContext, TemplateLoader, register_built_in_handlers,
+    RequestContext, TemplateLoader, register_built_in_handlers, database,
 };
 use rhtml_parser::Value;
 use serde_json::Value as JsonValue;
+use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_livereload::LiveReloadLayer;
@@ -23,6 +24,7 @@ use tracing::{error, info};
 struct AppState {
     template_loader: Arc<RwLock<TemplateLoader>>,
     action_registry: Arc<ActionHandlerRegistry>,
+    db: SqlitePool,
 }
 
 #[tokio::main]
@@ -120,6 +122,20 @@ async fn main() {
         println!("🔄 Hot Reload: DISABLED");
     }
 
+    // Initialize database
+    println!("📁 Initializing SQLite database...");
+    let database_url = "sqlite:rhtml.db";
+    let db_pool = match database::init_db(database_url).await {
+        Ok(pool) => {
+            println!("✅ Database initialized successfully");
+            pool
+        }
+        Err(e) => {
+            eprintln!("❌ Failed to initialize database: {}", e);
+            std::process::exit(1);
+        }
+    };
+
     // Setup action handler registry
     let mut action_registry = ActionHandlerRegistry::new();
     register_built_in_handlers(&mut action_registry);
@@ -128,6 +144,7 @@ async fn main() {
     let state = AppState {
         template_loader: template_loader.clone(),
         action_registry: Arc::new(action_registry),
+        db: db_pool,
     };
 
     // Build router with support for all HTTP methods
@@ -177,7 +194,7 @@ async fn index_handler(
     body: Bytes,
 ) -> Response {
     let request_context =
-        create_request_context(method, "/".to_string(), query.0, headers, body).await;
+        create_request_context(method, "/".to_string(), query.0, headers, body, Arc::new(state.db.clone())).await;
     render_route(&state, "/", request_context).await
 }
 
@@ -192,7 +209,7 @@ async fn template_handler(
 ) -> Response {
     let route = format!("/{}", path);
     let request_context =
-        create_request_context(method, route.clone(), query.0, headers, body).await;
+        create_request_context(method, route.clone(), query.0, headers, body, Arc::new(state.db.clone())).await;
     render_route(&state, &route, request_context).await
 }
 
@@ -203,6 +220,7 @@ async fn create_request_context(
     query_params: std::collections::HashMap<String, String>,
     headers: HeaderMap,
     body: Bytes,
+    db: Arc<SqlitePool>,
 ) -> RequestContext {
     // Create query params
     let query = QueryParams::new(query_params);
@@ -243,7 +261,7 @@ async fn create_request_context(
         FormData::new()
     };
 
-    RequestContext::new(method, path, query, form, headers)
+    RequestContext::new(method, path, query, form, headers, db)
 }
 
 /// Render a route with layout

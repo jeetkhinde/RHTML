@@ -138,46 +138,6 @@ impl Validate for SearchUsersRequest {
     }
 }
 
-/// Mock database functions
-pub mod db {
-    use super::*;
-
-    pub fn get_users() -> Vec<User> {
-        vec![
-            User {
-                id: 1,
-                name: "Alice".to_string(),
-                email: "alice@company.com".to_string(),
-                age: 30,
-                bio: Some("Software Engineer".to_string()),
-                username: "alice".to_string(),
-            },
-            User {
-                id: 2,
-                name: "Bob".to_string(),
-                email: "bob@company.com".to_string(),
-                age: 25,
-                bio: None,
-                username: "bob".to_string(),
-            },
-        ]
-    }
-
-    pub fn create_user(req: CreateUserRequest) -> User {
-        User {
-            id: 999,
-            name: req.name,
-            email: req.email,
-            age: req.age,
-            bio: req.bio,
-            username: req.username,
-        }
-    }
-
-    pub fn count_users() -> i32 {
-        get_users().len() as i32
-    }
-}
 
 /// GET /examples/actions-validation
 pub async fn get_actions_validation(_ctx: RequestContext) -> ActionResult {
@@ -206,40 +166,64 @@ pub async fn post_actions_validation(ctx: RequestContext) -> ActionResult {
             }
         }
         ValidationPipelineResult::Valid(req) => {
-            // Validation passed - create the user
-            let user = db::create_user(req);
-            let user_count = db::count_users();
+            // Validation passed - create the user in the database
+            use crate::database;
+            let pool = ctx.db.as_ref();
 
-            // Return HTML with toast and OOB update
-            let response_html = format!(
-                r#"<div class="user-card" id="user-{}">
-                <h3>{} (@{})</h3>
-                <p>Email: {}</p>
-                <p>Age: {}</p>
-            </div>"#,
-                user.id, user.name, user.username, user.email, user.age
-            );
+            match database::create_user(
+                pool,
+                req.name.clone(),
+                req.email.clone(),
+                req.age,
+                req.username.clone(),
+                req.bio.clone(),
+            ).await {
+                Ok(user) => {
+                    // Get updated user count
+                    let user_count = match database::count_users(pool).await {
+                        Ok(count) => count,
+                        Err(_) => 1, // Default to 1 if count fails
+                    };
 
-            // Build response with HX-Trigger header for toast
-            let mut headers = axum::http::HeaderMap::new();
-            let trigger = serde_json::json!({
-                "showToast": {
-                    "message": "User created!"
+                    // Return HTML with toast and OOB update
+                    let response_html = format!(
+                        r#"<div class="user-card" id="user-{}">
+                        <h3>{} (@{})</h3>
+                        <p>Email: {}</p>
+                        <p>Age: {}</p>
+                    </div>"#,
+                        user.id, user.name, user.username, user.email, user.age
+                    );
+
+                    // Build response with HX-Trigger header for toast
+                    let mut headers = axum::http::HeaderMap::new();
+                    let trigger = serde_json::json!({
+                        "showToast": {
+                            "message": "User created!"
+                        }
+                    });
+                    if let Ok(value) = trigger.to_string().parse() {
+                        headers.insert("HX-Trigger", value);
+                    }
+
+                    // Add OOB update for user count
+                    let oob_html = format!(
+                        r#"<div id="user-count" hx-swap-oob="true">{}</div>"#,
+                        user_count
+                    );
+
+                    ActionResult::Html {
+                        content: format!("{}\n{}", response_html, oob_html),
+                        headers,
+                    }
                 }
-            });
-            if let Ok(value) = trigger.to_string().parse() {
-                headers.insert("HX-Trigger", value);
-            }
-
-            // Add OOB update for user count
-            let oob_html = format!(
-                r#"<div id="user-count" hx-swap-oob="true">{}</div>"#,
-                user_count
-            );
-
-            ActionResult::Html {
-                content: format!("{}\n{}", response_html, oob_html),
-                headers,
+                Err(e) => {
+                    // Database error
+                    ActionResult::Error {
+                        status: 500,
+                        message: format!("Failed to create user: {}", e),
+                    }
+                }
             }
         }
     }
@@ -266,8 +250,16 @@ pub async fn patch_actions_validation(_ctx: RequestContext) -> ActionResult {
 }
 
 /// DELETE /examples/actions-validation/:id - Delete a user
-pub async fn delete_actions_validation(_ctx: RequestContext) -> ActionResult {
-    let count = db::count_users() - 1;
+pub async fn delete_actions_validation(ctx: RequestContext) -> ActionResult {
+    use crate::database;
+
+    let pool = ctx.db.as_ref();
+
+    // Get the updated user count after deletion
+    let count = match database::count_users(pool).await {
+        Ok(c) => c.saturating_sub(1), // Assume one was deleted
+        Err(_) => 0, // Default to 0 if count fails
+    };
 
     // Return only OOB update
     let oob_html = format!(
@@ -296,14 +288,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mock_database() {
-        let users = db::get_users();
-        assert_eq!(users.len(), 2);
-        assert_eq!(users[0].name, "Alice");
-    }
-
-    #[test]
-    fn test_create_user() {
+    fn test_create_user_validation_valid() {
         let req = CreateUserRequest {
             name: "Charlie".to_string(),
             email: "charlie@example.com".to_string(),
@@ -314,8 +299,43 @@ mod tests {
             website: None,
         };
 
-        let user = db::create_user(req);
-        assert_eq!(user.name, "Charlie");
-        assert_eq!(user.email, "charlie@example.com");
+        let result = req.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_create_user_validation_invalid_email() {
+        let req = CreateUserRequest {
+            name: "Charlie".to_string(),
+            email: "invalid-email".to_string(),
+            password: "SecurePass123!".to_string(),
+            age: 28,
+            bio: None,
+            username: "charlie".to_string(),
+            website: None,
+        };
+
+        let result = req.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.contains_key("email"));
+    }
+
+    #[test]
+    fn test_create_user_validation_short_password() {
+        let req = CreateUserRequest {
+            name: "Charlie".to_string(),
+            email: "charlie@example.com".to_string(),
+            password: "short".to_string(),
+            age: 28,
+            bio: None,
+            username: "charlie".to_string(),
+            website: None,
+        };
+
+        let result = req.validate();
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert!(errors.contains_key("password"));
     }
 }

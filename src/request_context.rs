@@ -3,10 +3,12 @@
 
 use axum::http::{HeaderMap, Method};
 use serde_json::Value as JsonValue;
+use sqlx::SqlitePool;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Request context passed to data functions and templates
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RequestContext {
     /// HTTP method (GET, POST, PUT, DELETE, etc.)
     pub method: Method,
@@ -25,6 +27,18 @@ pub struct RequestContext {
 
     /// Request path
     pub path: String,
+
+    /// Database connection pool
+    pub db: Arc<SqlitePool>,
+}
+
+impl std::fmt::Debug for RequestContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RequestContext")
+            .field("method", &self.method)
+            .field("path", &self.path)
+            .finish()
+    }
 }
 
 impl RequestContext {
@@ -35,6 +49,7 @@ impl RequestContext {
         query: QueryParams,
         form: FormData,
         headers: HeaderMap,
+        db: Arc<SqlitePool>,
     ) -> Self {
         // Parse cookies from headers
         let cookies = Self::parse_cookies(&headers);
@@ -46,6 +61,7 @@ impl RequestContext {
             headers,
             cookies,
             path,
+            db,
         }
     }
 

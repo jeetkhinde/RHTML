@@ -3,6 +3,7 @@ pub mod action_handlers;
 pub mod actions;
 pub mod component;
 pub mod config;
+pub mod database;
 pub mod example_actions;
 pub mod form_context;
 pub mod hot_reload;
