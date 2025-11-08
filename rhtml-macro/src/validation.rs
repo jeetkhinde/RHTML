@@ -3,7 +3,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, Lit, Meta, Expr, ExprLit};
+use syn::{Data, DeriveInput, Fields, Lit, Expr, ExprLit};
 
 /// Parse validation attributes from a field
 pub fn extract_validation_attrs(attrs: &[syn::Attribute]) -> Vec<ValidationAttr> {

@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 /// Metadata about a layout's slot contract
+/// Note: Part of future layout system infrastructure
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct LayoutMetadata {
     /// Layout file path
@@ -15,6 +17,8 @@ pub struct LayoutMetadata {
 }
 
 /// A single slot field definition from LayoutSlots struct
+/// Note: Part of future layout system infrastructure
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct SlotField {
     /// Field name (e.g., "title", "description")
@@ -33,6 +37,7 @@ static LAYOUT_REGISTRY: Lazy<Mutex<HashMap<String, LayoutMetadata>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// Register a layout with its metadata
+#[allow(dead_code)]
 pub fn register_layout(dir_path: String, metadata: LayoutMetadata) {
     LAYOUT_REGISTRY
         .lock()
@@ -41,11 +46,13 @@ pub fn register_layout(dir_path: String, metadata: LayoutMetadata) {
 }
 
 /// Get layout metadata for a directory
+#[allow(dead_code)]
 pub fn get_layout(dir_path: &str) -> Option<LayoutMetadata> {
     LAYOUT_REGISTRY.lock().unwrap().get(dir_path).cloned()
 }
 
 /// Check if a layout exists for a directory
+#[allow(dead_code)]
 pub fn has_layout(dir_path: &str) -> bool {
     LAYOUT_REGISTRY.lock().unwrap().contains_key(dir_path)
 }

@@ -5,8 +5,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn, ItemStruct, File};
 
-use crate::layout_registry::{LayoutMetadata, SlotField, register_layout};
-use crate::layout_resolver::get_directory_key;
+use crate::layout_registry::SlotField;
 
 /// Process #[layout] attribute macro
 ///
@@ -20,6 +19,9 @@ use crate::layout_resolver::get_directory_key;
 ///     <html>...</html>
 /// }
 /// ```
+///
+/// Note: This is part of future layout system infrastructure
+#[allow(dead_code)]
 pub fn process_layout_macro(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let layout_fn = parse_macro_input!(item as ItemFn);
 

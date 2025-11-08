@@ -11,15 +11,7 @@ static PUBLIC_DOMAINS: &[&str] = &[
     "yandex.com", "zoho.com", "gmx.com", "mail.ru"
 ];
 
-// Password patterns
-static PASSWORD_STRONG_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$").unwrap()
-});
-
-static PASSWORD_MEDIUM_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$").unwrap()
-});
-
+// Password patterns (note: regex crate doesn't support lookaheads, so we validate manually)
 static PASSWORD_BASIC_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^.{6,}$").unwrap()
 });
@@ -59,18 +51,39 @@ pub fn is_blocked_domain(email: &str, blocked: &[String]) -> bool {
 pub fn validate_password(password: &str, pattern: &str) -> Result<(), String> {
     match pattern {
         "strong" => {
-            if PASSWORD_STRONG_REGEX.is_match(password) {
-                Ok(())
-            } else {
-                Err("Password must be at least 8 characters with uppercase, lowercase, number, and special character".to_string())
+            // Validate password manually: at least 8 chars, uppercase, lowercase, digit, special char
+            if password.len() < 8 {
+                return Err("Password must be at least 8 characters".to_string());
             }
+            if !password.chars().any(|c| c.is_uppercase()) {
+                return Err("Password must contain at least one uppercase letter".to_string());
+            }
+            if !password.chars().any(|c| c.is_lowercase()) {
+                return Err("Password must contain at least one lowercase letter".to_string());
+            }
+            if !password.chars().any(|c| c.is_numeric()) {
+                return Err("Password must contain at least one digit".to_string());
+            }
+            if !password.chars().any(|c| "@$!%*?&".contains(c)) {
+                return Err("Password must contain at least one special character (@$!%*?&)".to_string());
+            }
+            Ok(())
         }
         "medium" => {
-            if PASSWORD_MEDIUM_REGEX.is_match(password) {
-                Ok(())
-            } else {
-                Err("Password must be at least 8 characters with uppercase, lowercase, and number".to_string())
+            // Validate password manually: at least 8 chars, uppercase, lowercase, digit
+            if password.len() < 8 {
+                return Err("Password must be at least 8 characters".to_string());
             }
+            if !password.chars().any(|c| c.is_uppercase()) {
+                return Err("Password must contain at least one uppercase letter".to_string());
+            }
+            if !password.chars().any(|c| c.is_lowercase()) {
+                return Err("Password must contain at least one lowercase letter".to_string());
+            }
+            if !password.chars().any(|c| c.is_numeric()) {
+                return Err("Password must contain at least one digit".to_string());
+            }
+            Ok(())
         }
         "basic" => {
             if PASSWORD_BASIC_REGEX.is_match(password) {

@@ -20,6 +20,9 @@ use std::path::{Path, PathBuf};
 /// // 1. pages/users/_layout.rhtml
 /// // 2. pages/_layout.rhtml (fallback)
 /// ```
+///
+/// Note: Part of future layout system infrastructure
+#[allow(dead_code)]
 pub fn find_layout_for_page(page_path: &Path) -> Result<PathBuf, String> {
     let mut current = page_path
         .parent()
@@ -60,6 +63,9 @@ pub fn find_layout_for_page(page_path: &Path) -> Result<PathBuf, String> {
 /// Get the directory path (as string) for registry lookup
 ///
 /// Converts an absolute file path to a directory string for the registry
+///
+/// Note: Part of future layout system infrastructure
+#[allow(dead_code)]
 pub fn get_directory_key(layout_path: &Path) -> String {
     layout_path
         .parent()

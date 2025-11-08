@@ -2,7 +2,6 @@
 // Purpose: Implement slot! macro for capturing slot values
 
 use proc_macro::TokenStream;
-use proc_macro2::Span;
 use quote::quote;
 use syn::{parse_macro_input, Expr, Ident, Token};
 use syn::parse::{Parse, ParseStream};
@@ -10,11 +9,15 @@ use syn::punctuated::Punctuated;
 
 /// Parsed slot! macro input
 /// Example: slot! { title: "Home", description: "Welcome" }
+/// Note: Part of future slot system infrastructure
+#[allow(dead_code)]
 struct SlotMacro {
     slots: Vec<SlotAssignment>,
 }
 
 /// A single slot assignment: key: value
+/// Note: Part of future slot system infrastructure
+#[allow(dead_code)]
 struct SlotAssignment {
     key: Ident,
     value: Expr,
@@ -52,6 +55,7 @@ impl Parse for SlotAssignment {
 ///
 /// Expands to an internal representation that will be processed
 /// by the RHTML parser to create the appropriate LayoutSlots struct.
+#[allow(dead_code)]
 pub fn process_slot_macro(input: TokenStream) -> TokenStream {
     let slot_macro = parse_macro_input!(input as SlotMacro);
 
