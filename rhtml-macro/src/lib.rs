@@ -3,12 +3,13 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemFn, FnArg, Pat};
+use syn::{parse_macro_input, ItemFn, FnArg, Pat, DeriveInput};
 
 mod layout;
 mod layout_registry;
 mod layout_resolver;
 mod slot;
+mod validation;
 
 /// The #[webpage] attribute macro for defining pages
 ///
@@ -134,4 +135,35 @@ pub fn component(_attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     output.into()
+}
+
+/// Derive macro for automatic validation
+///
+/// # Example
+///
+/// ```ignore
+/// #[derive(Validate)]
+/// struct CreateUserRequest {
+///     #[email]
+///     #[no_public_domains]
+///     email: String,
+///
+///     #[password("strong")]
+///     password: String,
+///
+///     #[min(18)] #[max(120)]
+///     age: i32,
+/// }
+/// ```
+#[proc_macro_derive(Validate, attributes(
+    email, no_public_domains, blocked_domains,
+    password, min, max, range,
+    min_length, max_length, length,
+    regex, url, allow_whitespace,
+    required, query, form
+))]
+pub fn derive_validate(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let expanded = validation::impl_validate(&input);
+    expanded.into()
 }
