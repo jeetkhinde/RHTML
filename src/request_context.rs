@@ -186,6 +186,7 @@ impl QueryParams {
 pub struct FormData {
     fields: HashMap<String, String>,
     raw_json: Option<JsonValue>,
+    validation_errors: HashMap<String, String>,
 }
 
 impl FormData {
@@ -194,14 +195,22 @@ impl FormData {
         Self {
             fields: HashMap::new(),
             raw_json: None,
+            validation_errors: HashMap::new(),
         }
     }
 
-    /// Create from form fields
+    /// Create from form fields with automatic trimming
     pub fn from_fields(fields: HashMap<String, String>) -> Self {
+        // Trim all string values by default
+        let trimmed_fields = fields
+            .into_iter()
+            .map(|(k, v)| (k, v.trim().to_string()))
+            .collect();
+
         Self {
-            fields,
+            fields: trimmed_fields,
             raw_json: None,
+            validation_errors: HashMap::new(),
         }
     }
 
@@ -213,7 +222,8 @@ impl FormData {
         if let JsonValue::Object(map) = &json {
             for (key, value) in map {
                 if let Some(s) = value.as_str() {
-                    fields.insert(key.clone(), s.to_string());
+                    // Trim string values
+                    fields.insert(key.clone(), s.trim().to_string());
                 } else {
                     fields.insert(key.clone(), value.to_string());
                 }
@@ -223,6 +233,7 @@ impl FormData {
         Self {
             fields,
             raw_json: Some(json),
+            validation_errors: HashMap::new(),
         }
     }
 
@@ -259,5 +270,65 @@ impl FormData {
     /// Check if form is empty
     pub fn is_empty(&self) -> bool {
         self.fields.is_empty() && self.raw_json.is_none()
+    }
+
+    /// Set validation errors
+    pub fn set_validation_errors(&mut self, errors: HashMap<String, String>) {
+        self.validation_errors = errors;
+    }
+
+    /// Get validation errors
+    pub fn validation_errors(&self) -> &HashMap<String, String> {
+        &self.validation_errors
+    }
+
+    /// Get error for a specific field
+    pub fn get_error(&self, field: &str) -> Option<&String> {
+        self.validation_errors.get(field)
+    }
+
+    /// Check if there are validation errors
+    pub fn has_errors(&self) -> bool {
+        !self.validation_errors.is_empty()
+    }
+
+    /// Check if a specific field has an error
+    pub fn has_error(&self, field: &str) -> bool {
+        self.validation_errors.contains_key(field)
+    }
+
+    /// Parse into a validated struct
+    pub fn parse<T>(&self) -> Result<T, HashMap<String, String>>
+    where
+        T: serde::de::DeserializeOwned + crate::validation::Validate,
+    {
+        // First parse the data
+        let parsed: T = if let Some(json) = &self.raw_json {
+            serde_json::from_value(json.clone())
+                .map_err(|e| {
+                    let mut errors = HashMap::new();
+                    errors.insert("_general".to_string(), e.to_string());
+                    errors
+                })?
+        } else {
+            // Convert fields to JSON and parse
+            let json = serde_json::to_value(&self.fields)
+                .map_err(|e| {
+                    let mut errors = HashMap::new();
+                    errors.insert("_general".to_string(), e.to_string());
+                    errors
+                })?;
+            serde_json::from_value(json)
+                .map_err(|e| {
+                    let mut errors = HashMap::new();
+                    errors.insert("_general".to_string(), e.to_string());
+                    errors
+                })?
+        };
+
+        // Then validate
+        parsed.validate()?;
+
+        Ok(parsed)
     }
 }
