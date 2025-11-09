@@ -11,7 +11,11 @@ Complete reference for all RHTMX features and directives.
 2. [css! Macro](#css-macro---scoped-styles)
 3. [HTTP Verb Macros](#http-verb-macros)
 4. [Response Builders](#response-builders)
-5. [Complete Examples](#complete-examples)
+5. [Form Validation](#form-validation)
+   - [Basic Usage](#basic-usage)
+   - [Available Validators](#available-validators)
+   - [Validation with HTMX](#validation-with-htmx)
+6. [Complete Examples](#complete-examples)
 
 ---
 
@@ -643,17 +647,305 @@ fn component() -> Html {
 
 ---
 
+## Form Validation
+
+RHTMX includes a powerful compile-time validation system using `#[derive(Validate)]`.
+
+### Basic Usage
+
+```rust
+use rhtmx::{Validate, ValidateTrait};
+use serde::Deserialize;
+
+#[derive(Validate, Deserialize)]
+struct CreateUserRequest {
+    #[min_length(3)]
+    #[max_length(50)]
+    name: String,
+
+    #[email]
+    email: String,
+
+    #[password("strong")]
+    password: String,
+
+    #[min(18)]
+    #[max(120)]
+    age: i32,
+
+    bio: Option<String>,  // Optional fields
+}
+
+// Validate the struct
+fn handle_request(req: CreateUserRequest) {
+    match req.validate() {
+        Ok(()) => {
+            // Validation passed, process request
+            println!("Valid request!");
+        }
+        Err(errors) => {
+            // Validation failed, errors is HashMap<String, String>
+            for (field, error) in errors {
+                println!("{}: {}", field, error);
+            }
+        }
+    }
+}
+```
+
+### Available Validators
+
+#### Email Validators
+
+```rust
+#[derive(Validate)]
+struct EmailForm {
+    // Basic email format validation
+    #[email]
+    email: String,
+
+    // Reject public domains (gmail, yahoo, etc.)
+    #[email]
+    #[no_public_domains]
+    work_email: String,
+
+    // Block specific domains
+    #[email]
+    #[blocked_domains("competitor.com", "spam.com")]
+    business_email: String,
+}
+```
+
+#### Password Validators
+
+```rust
+#[derive(Validate)]
+struct PasswordForm {
+    // Predefined patterns
+    #[password("strong")]  // 8+ chars, upper, lower, digit, special
+    strong_password: String,
+
+    #[password("medium")]  // 8+ chars, upper, lower, digit
+    medium_password: String,
+
+    #[password("basic")]   // 6+ chars minimum
+    basic_password: String,
+
+    // Custom regex pattern
+    #[password(r"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{12,}$")]
+    custom_password: String,
+}
+```
+
+**Password Pattern Definitions:**
+
+| Pattern | Requirements |
+|---------|-------------|
+| `"strong"` | 8+ chars, uppercase, lowercase, digit, special char (@$!%*?&) |
+| `"medium"` | 8+ chars, uppercase, lowercase, digit |
+| `"basic"` | 6+ chars minimum |
+| Custom regex | Any regex pattern |
+
+#### Numeric Validators
+
+```rust
+#[derive(Validate)]
+struct NumericForm {
+    #[min(18)]
+    age: i32,
+
+    #[max(100)]
+    score: i32,
+
+    #[range(1, 10)]
+    rating: i32,
+}
+```
+
+#### String Validators
+
+```rust
+#[derive(Validate)]
+struct StringForm {
+    #[min_length(3)]
+    username: String,
+
+    #[max_length(100)]
+    bio: String,
+
+    #[length(3, 50)]
+    display_name: String,
+
+    #[regex(r"^\d{3}-\d{3}-\d{4}$")]
+    phone: String,
+
+    #[url]
+    website: String,
+}
+```
+
+#### General Validators
+
+```rust
+#[derive(Validate)]
+struct GeneralForm {
+    // Required for Option<T> fields
+    #[required]
+    required_field: Option<String>,
+
+    // Don't trim whitespace (for code, poems, etc.)
+    #[allow_whitespace]
+    content: String,
+
+    // Optional field (no validation if empty)
+    notes: Option<String>,
+}
+```
+
+### Complete Validator Reference
+
+| Validator | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `#[email]` | String | Valid email format | `user@example.com` |
+| `#[no_public_domains]` | String | Reject gmail, yahoo, etc. | Use with `#[email]` |
+| `#[blocked_domains(...)]` | String | Block specific domains | `#[blocked_domains("spam.com")]` |
+| `#[password("pattern")]` | String | Password strength | `#[password("strong")]` |
+| `#[min(n)]` | Numeric | Minimum value | `#[min(18)]` |
+| `#[max(n)]` | Numeric | Maximum value | `#[max(120)]` |
+| `#[range(min, max)]` | Numeric | Value range | `#[range(1, 10)]` |
+| `#[min_length(n)]` | String | Minimum length | `#[min_length(3)]` |
+| `#[max_length(n)]` | String | Maximum length | `#[max_length(50)]` |
+| `#[length(min, max)]` | String | Length range | `#[length(3, 50)]` |
+| `#[regex(r"pattern")]` | String | Custom regex | `#[regex(r"^\d+$")]` |
+| `#[url]` | String | Valid URL | `https://example.com` |
+| `#[required]` | Option<T> | Required field | For optional fields |
+| `#[allow_whitespace]` | String | Preserve whitespace | For code blocks, etc. |
+
+### Validation with HTMX
+
+```rust
+use rhtmx::{Validate, ValidateTrait, Ok, Error};
+
+#[derive(Validate, Deserialize)]
+struct CreateUserRequest {
+    #[min_length(3)]
+    name: String,
+
+    #[email]
+    email: String,
+}
+
+#[post]
+fn create_user(req: CreateUserRequest) -> Result<OkResponse, ErrorResponse> {
+    // Validate the request
+    if let Err(errors) = req.validate() {
+        // Return errors to be displayed in the form
+        return Err(Error()
+            .message("Validation failed")
+            .render(validation_errors, errors));
+    }
+
+    // Process valid request
+    let user = db::create_user(req)?;
+    Ok()
+        .render(user_card, user)
+        .toast("User created!")
+}
+
+fn validation_errors(errors: HashMap<String, String>) -> Html {
+    html! {
+        <div class="errors">
+            <div r-for="(field, error) in errors">
+                <p class="error">{field}": "{error}</p>
+            </div>
+        </div>
+    }
+}
+```
+
+### Whitespace Handling
+
+**Default Behavior:**
+
+| Type | Behavior |
+|------|----------|
+| `String` | Trimmed, must be non-empty after trimming |
+| `Option<String>` | Allows empty/whitespace |
+| `#[allow_whitespace] String` | Preserves whitespace, but required |
+
+**Example:**
+
+```rust
+#[derive(Validate)]
+struct PostForm {
+    // Auto-trimmed, non-empty
+    title: String,
+
+    // Optional, allows empty
+    description: Option<String>,
+
+    // Preserve whitespace (for code, poems)
+    #[allow_whitespace]
+    content: String,
+}
+```
+
+### Custom Error Messages
+
+The validation system provides default error messages:
+
+- Email: `"Invalid email address"`
+- Password (strong): `"Password must be at least 8 characters with uppercase, lowercase, digit, and special character"`
+- Min: `"Must be at least {min}"`
+- Max: `"Must be at most {max}"`
+- Min length: `"Must be at least {n} characters"`
+- URL: `"Invalid URL"`
+
+### Combining Validators
+
+You can stack multiple validators on a single field:
+
+```rust
+#[derive(Validate)]
+struct AdvancedForm {
+    #[min_length(3)]
+    #[max_length(50)]
+    #[regex(r"^[a-zA-Z0-9_]+$")]
+    username: String,
+
+    #[email]
+    #[no_public_domains]
+    #[blocked_domains("competitor.com")]
+    email: String,
+
+    #[min(18)]
+    #[max(120)]
+    age: i32,
+}
+```
+
+### Performance
+
+- **Compile-time code generation** - Validation logic is generated at compile time
+- **Zero runtime overhead** - No reflection or dynamic dispatch
+- **Type-safe** - All validations are type-checked by Rust compiler
+- **No dependencies on validation libraries** - Built-in validators use only `regex` crate
+
+---
+
 ## Performance Notes
 
 - **All directives compile to native Rust** - Zero runtime overhead
 - **Type checking at compile time** - Catch errors before running
 - **Optimal code generation** - Efficient string building
 - **No runtime template engine** - Small binary size
+- **Compile-time validation** - Form validation with zero runtime cost
 
 ---
 
 For more examples, see:
 - `examples/users_crud.rs` - Basic CRUD
 - `examples/complete_features.rs` - All features demo
+- `examples/validation_demo.rs` - Complete validation examples
 
 For quick start, see `QUICKSTART.md`
