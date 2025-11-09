@@ -1,7 +1,11 @@
 [package]
-name = "rhtml_app"
+name = "rhtml"
 version = "0.1.0"
 edition = "2021"
+
+[lib]
+name = "rhtml"
+path = "src/lib.rs"
 
 [[bin]]
 name = "rhtml_app"

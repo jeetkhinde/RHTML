@@ -6,8 +6,8 @@ use axum::{
     routing::get,
     Router,
 };
-use rhtml_app::hot_reload::{create_watcher, ChangeType};
-use rhtml_app::{
+use rhtml::hot_reload::{create_watcher, ChangeType};
+use rhtml::{
     ActionHandlerRegistry, Config, FormData, LayoutDirective, QueryParams, Renderer,
     RequestContext, TemplateLoader, register_built_in_handlers, database,
 };

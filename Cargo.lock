@@ -1285,28 +1285,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
-name = "rhtml-macro"
-version = "0.1.0"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn 2.0.108",
-]
-
-[[package]]
-name = "rhtml-parser"
-version = "0.1.0"
-dependencies = [
- "regex",
-]
-
-[[package]]
-name = "rhtml-router"
-version = "0.1.0"
-
-[[package]]
-name = "rhtml_app"
+name = "rhtml"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1330,6 +1309,27 @@ dependencies = [
  "urlencoding",
  "uuid",
 ]
+
+[[package]]
+name = "rhtml-macro"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.108",
+]
+
+[[package]]
+name = "rhtml-parser"
+version = "0.1.0"
+dependencies = [
+ "regex",
+]
+
+[[package]]
+name = "rhtml-router"
+version = "0.1.0"
 
 [[package]]
 name = "ring"
