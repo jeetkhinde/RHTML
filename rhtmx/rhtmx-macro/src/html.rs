@@ -372,19 +372,29 @@ pub struct CodeGenerator;
 impl CodeGenerator {
     /// Generate Rust code from parsed nodes
     pub fn generate(nodes: Vec<Node>) -> TokenStream {
-        let mut output = quote! {
-            let mut __html = String::new();
-        };
+        let mut statements = quote! {};
 
         for node in nodes {
-            output.extend(Self::generate_node(&node));
+            statements.extend(Self::generate_node(&node));
         }
 
-        output.extend(quote! {
-            rhtmx::Html(__html)
-        });
+        // Use the correct path depending on whether we're inside the rhtmx crate
+        // When used inside rhtmx crate, use crate::Html
+        // When used outside, use rhtmx::Html
+        let html_path = if std::env::var("CARGO_CRATE_NAME").ok().as_deref() == Some("rhtmx") {
+            quote! { crate::Html }
+        } else {
+            quote! { rhtmx::Html }
+        };
 
-        output
+        // Wrap in a block expression so it can be used in let bindings
+        quote! {
+            {
+                let mut __html = String::new();
+                #statements
+                #html_path(__html)
+            }
+        }
     }
 
     /// Generate code for a single node
