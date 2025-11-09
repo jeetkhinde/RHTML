@@ -483,6 +483,11 @@ impl CodeGenerator {
 
     /// Check for and handle r-directives
     fn check_directives(element: &Element) -> Option<TokenStream> {
+        // Check for r-match (pattern matching)
+        if let Some(r_match) = element.attributes.iter().find(|a| a.name == "r-match") {
+            return Some(Self::generate_r_match(element, r_match));
+        }
+
         // Check for r-for
         if let Some(r_for) = element.attributes.iter().find(|a| a.name == "r-for") {
             return Some(Self::generate_r_for(element, r_for));
@@ -491,6 +496,16 @@ impl CodeGenerator {
         // Check for r-if
         if let Some(r_if) = element.attributes.iter().find(|a| a.name == "r-if") {
             return Some(Self::generate_r_if(element, r_if));
+        }
+
+        // Check for r-else-if (standalone - usually follows r-if)
+        if let Some(r_else_if) = element.attributes.iter().find(|a| a.name == "r-else-if") {
+            return Some(Self::generate_r_else_if(element, r_else_if));
+        }
+
+        // Check for r-else (standalone)
+        if element.attributes.iter().any(|a| a.name == "r-else") {
+            return Some(Self::generate_r_else(element));
         }
 
         None
@@ -563,6 +578,110 @@ impl CodeGenerator {
         quote! {
             if #condition {
                 #element_code
+            }
+        }
+    }
+
+    /// Generate code for r-else-if directive
+    fn generate_r_else_if(element: &Element, r_else_if_attr: &Attribute) -> TokenStream {
+        let condition = match &r_else_if_attr.value {
+            AttributeValue::Static(s) => s.parse::<TokenStream>().unwrap_or_default(),
+            AttributeValue::Dynamic(expr) => expr.clone(),
+        };
+
+        // Create element without r-else-if attribute
+        let mut clean_element = element.clone();
+        clean_element.attributes.retain(|a| a.name != "r-else-if");
+
+        let element_code = Self::generate_element(&clean_element);
+
+        quote! {
+            else if #condition {
+                #element_code
+            }
+        }
+    }
+
+    /// Generate code for r-else directive
+    fn generate_r_else(element: &Element) -> TokenStream {
+        // Create element without r-else attribute
+        let mut clean_element = element.clone();
+        clean_element.attributes.retain(|a| a.name != "r-else");
+
+        let element_code = Self::generate_element(&clean_element);
+
+        quote! {
+            else {
+                #element_code
+            }
+        }
+    }
+
+    /// Generate code for r-match directive (pattern matching)
+    ///
+    /// Example usage:
+    /// ```ignore
+    /// <div r-match="status">
+    ///     <div r-when="\"active\"">Active</div>
+    ///     <div r-when="\"pending\"">Pending</div>
+    ///     <div r-default>Unknown</div>
+    /// </div>
+    /// ```
+    fn generate_r_match(element: &Element, r_match_attr: &Attribute) -> TokenStream {
+        let match_expr = match &r_match_attr.value {
+            AttributeValue::Static(s) => s.parse::<TokenStream>().unwrap_or_default(),
+            AttributeValue::Dynamic(expr) => expr.clone(),
+        };
+
+        // Process children to find r-when and r-default
+        let mut match_arms = Vec::new();
+        let mut has_default = false;
+
+        for child in &element.children {
+            if let Node::Element(child_el) = child {
+                // Check for r-when
+                if let Some(r_when) = child_el.attributes.iter().find(|a| a.name == "r-when") {
+                    let pattern = match &r_when.value {
+                        AttributeValue::Static(s) => s.parse::<TokenStream>().unwrap_or_default(),
+                        AttributeValue::Dynamic(expr) => expr.clone(),
+                    };
+
+                    let mut clean_child = child_el.clone();
+                    clean_child.attributes.retain(|a| a.name != "r-when");
+                    let child_code = Self::generate_element(&clean_child);
+
+                    match_arms.push(quote! {
+                        #pattern => {
+                            #child_code
+                        }
+                    });
+                }
+                // Check for r-default
+                else if child_el.attributes.iter().any(|a| a.name == "r-default") {
+                    let mut clean_child = child_el.clone();
+                    clean_child.attributes.retain(|a| a.name != "r-default");
+                    let child_code = Self::generate_element(&clean_child);
+
+                    match_arms.push(quote! {
+                        _ => {
+                            #child_code
+                        }
+                    });
+                    has_default = true;
+                }
+            }
+        }
+
+        // If no default, add empty default arm
+        if !has_default {
+            match_arms.push(quote! {
+                _ => {}
+            });
+        }
+
+        quote! {
+            match #match_expr {
+                #(#match_arms)*
             }
         }
     }
