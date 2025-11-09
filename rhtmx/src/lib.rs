@@ -3,6 +3,7 @@
 
 pub mod html;
 pub mod validation;
+pub mod layouts;
 
 // Re-export the html! macro from rhtmx-macro
 pub use rhtmx_macro::{html, css, get, post, put, patch, delete, Validate};
