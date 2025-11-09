@@ -5,6 +5,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn, FnArg, Pat, DeriveInput};
 
+mod html;
 mod layout;
 mod layout_registry;
 mod layout_resolver;
@@ -166,4 +167,59 @@ pub fn derive_validate(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let expanded = validation::impl_validate(&input);
     expanded.into()
+}
+
+/// The html! macro for compile-time HTML generation
+///
+/// This macro parses JSX-like syntax and generates efficient Rust code.
+/// It supports r-directives like r-for and r-if for control flow.
+///
+/// # Example
+///
+/// ```ignore
+/// fn user_card(user: &User) {
+///     html! {
+///         <div class="card">
+///             <h3>{user.name}</h3>
+///             <p>{user.email}</p>
+///         </div>
+///     }
+/// }
+/// ```
+///
+/// # R-Directives
+///
+/// ## r-for
+/// ```ignore
+/// html! {
+///     <div r-for="user in users">
+///         <p>{user.name}</p>
+///     </div>
+/// }
+/// ```
+///
+/// ## r-if
+/// ```ignore
+/// html! {
+///     <div r-if="user.is_admin">
+///         Admin Panel
+///     </div>
+/// }
+/// ```
+#[proc_macro]
+pub fn html(input: TokenStream) -> TokenStream {
+    // Convert input to string
+    let input_str = input.to_string();
+
+    // Parse HTML
+    let mut parser = html::HtmlParser::new(input_str);
+    let nodes = match parser.parse() {
+        Ok(nodes) => nodes,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    // Generate Rust code
+    let output = html::CodeGenerator::generate(nodes);
+
+    output.into()
 }
